@@ -5,6 +5,7 @@ edition = "2024"
 description = "Arbitrary Precision Constant Numbers (apcn) calculation written in Rust."
 readme = "README.md"
 repository = "https://github.com/BreezeWhite/apcn-rs"
+license = "MIT"
 
 [[bin]]
 name = "apcn"

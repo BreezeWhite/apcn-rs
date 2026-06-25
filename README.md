@@ -6,7 +6,7 @@
 
 
 An extremely fast, multi-threaded arbitrary-precision mathematical constant calculator and library written in Rust. Calculate mathematical constants like $\pi$ to **1 million decimal digits in less than 200 milliseconds**.
-View the complete benchmarks [here]()
+View the complete benchmarks [here](https://breezewhite.github.io/apcn-rs/)
 
 ---
 
@@ -41,17 +41,36 @@ View the complete benchmarks [here]()
 
 ### Installation
 
-Install the CLI binary directly from source or via Cargo.
+#### Pre-built Binary
 
-#### Option A: GMP Backend (Default, Fast)
-Requires GMP, MPFR, and MPC libraries installed on your system:
+For Linux/MacOS
 ```bash
-cargo install apcn
+# Default using GMP(rug) backend
+curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/refs/heads/main/install.sh | sh
+
+# To download dashu version
+BACKEND=dashu curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/refs/heads/main/install.sh | sh
 ```
 
-#### Option B: Pure Rust Backend (Dashu, Portable)
-Requires no external system packages:
+For Windows
+```shell
+irm https://raw.githubusercontent.com/BreezeWhite/apcn-rs/main/install.ps1 | iex
+
+# To download dashu version
+$env:BACKEND="dashu"; irm https://raw.githubusercontent.com/BreezeWhite/apcn-rs/main/install.ps1 | iex
+```
+
+#### Install from source
+
+Install the CLI binary from source via Cargo.
+May need to install additional dependencies and take time to build.
+
 ```bash
+# GMP backend (default, fast)
+# Requires GMP, MPFR, and MPC libraries installed on your system
+cargo install apcn
+
+# Pure Rust backed (dashu, portable)
 cargo install apcn --no-default-features --features cli,dashu
 ```
 

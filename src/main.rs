@@ -5,7 +5,7 @@ use std::time::Instant;
 use apcn::backend::BigFloat;
 use apcn::cli::{Actions, Cli};
 use apcn::log::generic_log::{compute_ln, compute_ln_parallel};
-use apcn::{e, log, pi, sqrt, phi};
+use apcn::{e, log, phi, pi, sqrt};
 use clap::Parser;
 
 fn gen_test_data() -> Result<()> {
@@ -35,7 +35,57 @@ const BACKEND: &str = "rug";
 #[cfg(feature = "dashu")]
 const BACKEND: &str = "dashu";
 
-fn main_cli() {
+fn get_func(action: Actions, parallel: bool) -> fn(u32) -> BigFloat {
+    match action {
+        Actions::Pi => {
+            if parallel {
+                pi::compute_parallel
+            } else {
+                pi::compute
+            }
+        }
+        Actions::E => {
+            if parallel {
+                e::compute_parallel
+            } else {
+                e::compute
+            }
+        }
+        Actions::Ln2 => {
+            if parallel {
+                log::ln2_parallel
+            } else {
+                log::ln2
+            }
+        }
+        Actions::Ln3 => {
+            if parallel {
+                log::ln3_parallel
+            } else {
+                log::ln3
+            }
+        }
+        Actions::Ln5 => {
+            if parallel {
+                log::ln5_parallel
+            } else {
+                log::ln5
+            }
+        }
+        Actions::Sqrt2 => sqrt::sqrt2,
+        Actions::Sqrt3 => sqrt::sqrt3,
+        Actions::Sqrt5 => sqrt::sqrt5,
+        Actions::Phi => {
+            if parallel {
+                phi::compute_parallel
+            } else {
+                phi::compute_phi
+            }
+        }
+    }
+}
+
+fn main() {
     let arg = Cli::parse();
 
     if arg.backend {
@@ -46,65 +96,28 @@ fn main_cli() {
     let action = match arg.action {
         Some(action) => action,
         None => {
-            println!("Please specify an action. Use --help for more information.");
             return;
         }
     };
 
-    let func = match action {
-        Actions::Pi => {
-            if arg.parallel {
-                pi::compute_parallel
-            } else {
-                pi::compute
-            }
-        }
-        Actions::E => {
-            if arg.parallel {
-                e::compute_parallel
-            } else {
-                e::compute
-            }
-        }
-        Actions::Ln2 => {
-            if arg.parallel {
-                log::ln2_parallel
-            } else {
-                log::ln2
-            }
-        }
-        Actions::Ln3 => {
-            if arg.parallel {
-                log::ln3_parallel
-            } else {
-                log::ln3
-            }
-        }
-        Actions::Ln5 => {
-            if arg.parallel {
-                log::ln5_parallel
-            } else {
-                log::ln5
-            }
-        }
-        Actions::Sqrt2 => sqrt::sqrt2,
-        Actions::Sqrt3 => sqrt::sqrt3,
-        Actions::Sqrt5 => sqrt::sqrt5,
-    };
+    let func = get_func(action, arg.parallel);
 
     let start = Instant::now();
     let out = func(arg.digits);
 
-    let out_str = out.to_fixed_string();
-    println!("{}", &out_str[..(arg.digits as usize + 2)]);
+    if !arg.no_print {
+        let out_str = out.to_fixed_string();
+        println!("{}", &out_str[..(arg.digits as usize + 2)]);
+        // println!("{}", out_str);
+    }
 
     if arg.bench {
         println!("Elapsed: {:#?}", start.elapsed());
     }
 }
 
-fn main() {
-    let prec = 1_000_000;
+fn main_test() {
+    let prec = 10_000_000;
     let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
 
     let x = 2;
@@ -114,7 +127,7 @@ fn main() {
     // let val = BigFloat::with_val(binary_prec, x).ln();
     // let val = compute_ln_parallel(x as f64, prec);
     // let val = pi::compute_parallel(prec);
-    let val = phi::compute(prec);
+    let val = phi::compute_parallel(prec);
     let dura = start.elapsed();
     // println!("{}", val.to_string());
     println!("Compute parallel duration: {dura:#?}");
@@ -125,14 +138,15 @@ fn main() {
     println!("Format duration: {dura:#?}");
 
     // -----
-    // let start = Instant::now();
-    // let val = compute_ln(x as f64, prec);
-    // let dura = start.elapsed();
-    // // println!("{}", val.to_fixed_string());
-    // println!("Compute generic duration: {dura:#?}");
+    //     let start = Instant::now();
+    //     // let val = compute_ln(x as f64, prec);
+    //     let val = compute_phi(binary_prec);
+    //     let dura = start.elapsed();
+    //     // println!("{}", val.to_fixed_string());
+    //     println!("Compute generic duration: {dura:#?}");
 
-    // let start = Instant::now();
-    // let _ = val.to_string();
-    // let dura = start.elapsed();
-    // println!("Format duration: {dura:#?}");
+    //     let start = Instant::now();
+    //     let _ = val.to_string();
+    //     let dura = start.elapsed();
+    //     println!("Format duration: {dura:#?}");
 }

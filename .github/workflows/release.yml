@@ -81,6 +81,9 @@ jobs:
             mingw-w64-x86_64-gmp
             mingw-w64-x86_64-mpfr
             mingw-w64-x86_64-clang
+            m4
+            make
+            diffutils
           path-type: inherit
 
       - name: Install system dependencies (Linux Rug)
@@ -110,9 +113,13 @@ jobs:
 
       - name: Build binary (rug backend)
         if: matrix.backend == 'rug'
-        shell: bash
+        shell: ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            echo "=== Debugging: Locating m4.exe ==="
+            find /c/msys64 -name "m4.exe" 2>/dev/null || true
+            find /usr/bin -name "m4.exe" 2>/dev/null || true
+            
             export PATH="/c/msys64/usr/bin:$PATH"
             CC=clang cargo build --release
           else

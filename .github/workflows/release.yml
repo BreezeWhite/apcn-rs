@@ -83,11 +83,6 @@ jobs:
             mingw-w64-x86_64-clang
           path-type: inherit
 
-      - name: Add MSYS2 usr/bin to PATH (Windows Rug)
-        if: matrix.os == 'windows-latest' && matrix.backend == 'rug'
-        shell: bash
-        run: echo "C:\msys64\usr\bin" >> $GITHUB_PATH
-
       - name: Install system dependencies (Linux Rug)
         if: matrix.os == 'ubuntu-latest' && matrix.backend == 'rug'
         run: |
@@ -118,6 +113,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            export PATH="/c/msys64/usr/bin:$PATH"
             CC=clang cargo build --release
           else
             cargo build --release

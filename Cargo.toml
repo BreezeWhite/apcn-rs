@@ -36,9 +36,9 @@ criterion = "0.8.2"
 name = "compare"
 harness = false
 
-[profile.release]
-opt-level = "s"
-codegen-units = 1
-lto = true
-strip = true
-panic = "abort"
+# [profile.release]
+# opt-level = "s"
+# codegen-units = 1
+# lto = true
+# strip = true
+# panic = "abort"

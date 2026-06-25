@@ -2,8 +2,11 @@
 
 [![Rust](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![Crates.io Version](https://img.shields.io/crates/v/apcn?style=flat&color=red&link=https%3A%2F%2Fcrates.io%2Fcrates%2Fapcn)
+
 
 An extremely fast, multi-threaded arbitrary-precision mathematical constant calculator and library written in Rust. Calculate mathematical constants like $\pi$ to **1 million decimal digits in less than 200 milliseconds**.
+View the complete benchmarks [here]()
 
 ---
 
@@ -30,6 +33,7 @@ An extremely fast, multi-threaded arbitrary-precision mathematical constant calc
 | **Square Root 2** | $\sqrt{2}$ | `sqrt2` | Newton-Raphson Method | No |
 | **Square Root 3** | $\sqrt{3}$ | `sqrt3` | Newton-Raphson Method | No |
 | **Square Root 5** | $\sqrt{5}$ | `sqrt5` | Newton-Raphson Method | No |
+| **Golden Ratio Phi** | $\phi$ | `phi` | Direct Calculation | Yes |
 
 ---
 
@@ -58,16 +62,19 @@ cargo install apcn --no-default-features --features cli,dashu
 apcn pi
 
 # Calculate Pi to 1,000,000 digits
-apcn --digits 1000000 pi
+apcn pi --digits 1000000 
 
 # Calculate Euler's number (e) to 2,000,000 digits in parallel
-apcn --digits 2000000 --parallel e
+apcn e --digits 2000000 --parallel
 
 # Calculate Log 2 and benchmark the computation time
-apcn --digits 500000 --bench ln2
+apcn ln2 --digits 500000 --bench
 
-# Calculate Square Root of 2
-apcn --digits 100000 sqrt2
+# Test the pure speed of the algorithm without string formatting overhead.
+apcn sqrt2 -b --no-print
+
+# Get the backend of the built binary
+apcn --backend
 ```
 
 ---
@@ -112,22 +119,6 @@ fn main() {
 }
 ```
 
----
-
-## Architecture & Algorithm Overview
-
-### Binary Splitting
-For series calculations such as $\pi$ (Chudnovsky) and $e$ (Taylor series), the package implements **Binary Splitting** (`bs_utils`). Rather than performing sequential floating-point operations (which accumulate rounding errors and slow down due to high-precision operations), binary splitting converts the series sum into a rational tree structure of integers.
-- Reduces high-precision multiplications to a minimum.
-- Highly parallelizable: the merge phase splits the computation tree and runs concurrently using Rayon.
-
-### Newton's Method
-For square roots ($\sqrt{x}$), `apcn` uses the **Newton-Raphson** method for inverse square root $y \approx 1/\sqrt{x}$ using the iteration:
-$$y_{n+1} = y_n \left(1.5 - \frac{x}{2} y_n^2\right)$$
-This iteration has quadratic convergence and works directly on floating-point mantissas, scaling up precision dynamically at each step. Finally, we compute $\sqrt{x} = x \cdot y$.
-
----
-
 ## Development
 
 ### Setup & Testing
@@ -155,6 +146,9 @@ cargo bench
 cargo bench --no-default-features --features dashu
 ```
 
+To build the benchmark page, first run the full bench with above command, then execute `python generate_report.py`.
+You can now open `benchmark_report.html` with any browser.
+
 ### Feature Flags
 
 | Feature | Description |
@@ -162,9 +156,3 @@ cargo bench --no-default-features --features dashu
 | `cli` | Enables the command-line interface executable. |
 | `rug` | Enables the high-performance GMP wrapper backend (mutually exclusive with `dashu`). |
 | `dashu` | Enables the portable pure-Rust backend (mutually exclusive with `rug`). |
-
----
-
-## License
-
-This project is licensed under the MIT License.

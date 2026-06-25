@@ -6,9 +6,7 @@ $ErrorActionPreference = 'Stop'
 
 $Repo = "BreezeWhite/apcn-rs"
 
-# Default backend to dashu for zero DLL runtime dependency,
-# but allow users to specify "rug" via environment variable.
-$Backend = if ($env:BACKEND) { $env:BACKEND } else { "dashu" }
+$Backend = if ($env:BACKEND) { $env:BACKEND } else { "rug" }
 
 # Retrieve releases from GitHub API
 Write-Host "Fetching latest release version..." -ForegroundColor Cyan

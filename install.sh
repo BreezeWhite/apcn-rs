@@ -37,9 +37,8 @@ case "$ARCH" in
     ;;
 esac
 
-# Default backend to dashu for compatibility (zero runtime C dependencies),
-# but allow users to specify BACKEND=rug for high-performance builds.
-BACKEND="${BACKEND:-dashu}"
+# To download dashu backend version, set env var BACKEND=dashu
+BACKEND="${BACKEND:-rug}"
 
 if [ "$PLATFORM" = "macos" ]; then
   # Mac builds in CI are targeted for Apple Silicon (aarch64)

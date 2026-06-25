@@ -95,7 +95,7 @@ jobs:
           brew install gmp mpfr mpc
 
       - name: Install Rust toolchain (Standard)
-        if: '!(matrix.os == "windows-latest" && matrix.backend == "rug")'
+        if: matrix.os != 'windows-latest' || matrix.backend != 'rug'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust cache

@@ -1,0 +1,1452 @@
+import os
+import json
+import sys
+from datetime import datetime
+
+def format_time(ns):
+    if ns is None:
+        return "N/A"
+    if ns < 1000:
+        return f"{ns:.2f} ns"
+    elif ns < 1000000:
+        return f"{ns / 1000:.2f} µs"
+    elif ns < 1000000000:
+        return f"{ns / 1000000:.2f} ms"
+    else:
+        return f"{ns / 1000000000:.2f} s"
+
+def main():
+    criterion_dir = "/home/kohara/apc-rs/target/criterion"
+    if not os.path.exists(criterion_dir):
+        print(f"Error: Criterion directory '{criterion_dir}' not found.")
+        sys.exit(1)
+
+    print("Scanning Criterion benchmark directory...")
+    raw_data = {}
+
+    for root, dirs, files in os.walk(criterion_dir):
+        if "new" in dirs:
+            new_dir = os.path.join(root, "new")
+            bench_path = os.path.join(new_dir, "benchmark.json")
+            est_path = os.path.join(new_dir, "estimates.json")
+            
+            if os.path.exists(bench_path) and os.path.exists(est_path):
+                try:
+                    with open(bench_path, "r") as f:
+                        bench_data = json.load(f)
+                    with open(est_path, "r") as f:
+                        est_data = json.load(f)
+                    
+                    group_id = bench_data.get("group_id")
+                    function_id = bench_data.get("function_id") or "default"
+                    value_str = bench_data.get("value_str")
+                    
+                    try:
+                        val = float(value_str) if '.' in value_str else int(value_str)
+                    except (ValueError, TypeError):
+                        val = value_str
+                    
+                    mean = est_data.get("mean", {})
+                    median = est_data.get("median", {})
+                    std_dev = est_data.get("std_dev", {})
+                    
+                    point_data = {
+                        "value_str": value_str,
+                        "value_num": val,
+                        "mean_ns": mean.get("point_estimate"),
+                        "mean_lower_ns": mean.get("confidence_interval", {}).get("lower_bound"),
+                        "mean_upper_ns": mean.get("confidence_interval", {}).get("upper_bound"),
+                        "median_ns": median.get("point_estimate"),
+                        "std_dev_ns": std_dev.get("point_estimate"),
+                        "std_dev_pct": (std_dev.get("point_estimate") / mean.get("point_estimate") * 100) if mean.get("point_estimate") else 0
+                    }
+                    
+                    if group_id not in raw_data:
+                        raw_data[group_id] = {}
+                    if function_id not in raw_data[group_id]:
+                        raw_data[group_id][function_id] = []
+                    
+                    raw_data[group_id][function_id].append(point_data)
+                except Exception as e:
+                    print(f"Warning: Failed to parse benchmark at {root}: {e}")
+
+    # Sort the points for each function by their numeric value
+    for group_id in raw_data:
+        for function_id in raw_data[group_id]:
+            raw_data[group_id][function_id].sort(
+                key=lambda x: x["value_num"] if isinstance(x["value_num"], (int, float)) else 0
+            )
+
+    # Calculate some general stats
+    total_benchmarks = 0
+    fastest_time = float('inf')
+    fastest_name = ""
+    slowest_time = 0
+    slowest_name = ""
+
+    for g_id, fns in raw_data.items():
+        for f_id, pts in fns.items():
+            total_benchmarks += len(pts)
+            for pt in pts:
+                m_ns = pt["mean_ns"]
+                if m_ns is not None:
+                    if m_ns < fastest_time:
+                        fastest_time = m_ns
+                        fastest_name = f"{g_id}/{f_id} ({pt['value_str']})"
+                    if m_ns > slowest_time:
+                        slowest_time = m_ns
+                        slowest_name = f"{g_id}/{f_id} ({pt['value_str']})"
+
+    summary_stats = {
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "total_benchmarks": total_benchmarks,
+        "fastest_time": fastest_time if fastest_time != float('inf') else 0,
+        "fastest_time_str": format_time(fastest_time) if fastest_time != float('inf') else "N/A",
+        "fastest_name": fastest_name,
+        "slowest_time": slowest_time,
+        "slowest_time_str": format_time(slowest_time) if slowest_time > 0 else "N/A",
+        "slowest_name": slowest_name,
+        "group_count": len(raw_data)
+    }
+
+    # Generate HTML content
+    html_template = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APC-RS Benchmark Analysis Dashboard</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        :root {
+            --bg-main: #080c14;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(26, 36, 56, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --border-accent: rgba(6, 182, 212, 0.3);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            
+            --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+            --gradient-emerald: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            --gradient-rose: linear-gradient(135deg, #f43f5e 0%, #8b5cf6 100%);
+            --gradient-dark: linear-gradient(180deg, #080c14 0%, #0e1726 100%);
+            
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
+            
+            --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            background-image: var(--gradient-dark);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+            padding: 2rem;
+        }
+
+        /* Ambient Glow Blobs */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 100%);
+            top: -200px;
+            right: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .ambient-glow-2 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, rgba(6, 182, 212, 0.03) 50%, transparent 100%);
+            bottom: -100px;
+            left: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Glassmorphism Header */
+        header {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .header-title-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+
+        .header-logo i {
+            font-size: 24px;
+            color: #fff;
+        }
+
+        .header-titles h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-titles p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .header-stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 140px;
+        }
+
+        .header-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-stat-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-stat-value.cyan { color: var(--accent-cyan); }
+        .header-stat-value.emerald { color: var(--accent-emerald); }
+        .header-stat-value.rose { color: var(--accent-rose); }
+
+        /* Main Workspace Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .group-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .group-item-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .group-item-btn:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        .group-item-btn.active {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid var(--border-accent);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.05);
+        }
+
+        .group-badge {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .group-item-btn.active .group-badge {
+            background: var(--accent-cyan);
+            color: #000;
+        }
+
+        /* Toggle Buttons styling */
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .setting-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .btn-toggle-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.25rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .btn-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.5rem 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-toggle.active {
+            background: var(--gradient-primary);
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Main Content Cards */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            min-width: 0; /* Prevents flex items from overflowing */
+        }
+
+        .dashboard-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            transition: border-color 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-title-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(6, 182, 212, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-cyan);
+        }
+
+        .card-title-container h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .chart-container {
+            min-height: 400px;
+            width: 100%;
+        }
+
+        /* Analysis Metrics & Speedups Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tables styling */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .font-mono-val {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .badge-danger {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--accent-rose);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+        }
+
+        .badge-neutral {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Calculator Container */
+        .calculator-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .calc-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 100px;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        @media (max-width: 600px) {
+            .calc-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .select-input {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-family: var(--font-main);
+            font-weight: 500;
+            outline: none;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .select-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        .calc-result-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            text-align: center;
+        }
+
+        .calc-result-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .calc-result-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .calc-result-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Info boxes */
+        .info-box {
+            display: flex;
+            gap: 0.75rem;
+            background: rgba(6, 182, 212, 0.05);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .info-box i {
+            color: var(--accent-cyan);
+            margin-top: 0.15rem;
+        }
+
+        .info-box-content p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .size-picker {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .size-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .size-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .size-btn.active {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Detail Cards grid */
+        .detail-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-mini-card {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .detail-mini-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .detail-mini-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="dashboard-container">
+        <!-- Dashboard Header -->
+        <header>
+            <div class="header-title-section">
+                <div class="header-logo">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div class="header-titles">
+                    <h1>APC-RS Benchmark Analysis</h1>
+                    <p>Interactive dashboard generated from criterion execution measurements • Generated: <span id="gen-time"></span></p>
+                </div>
+            </div>
+            
+            <div class="header-stats">
+                <div class="header-stat-card">
+                    <span class="header-stat-label">Total Benchmarks</span>
+                    <span class="header-stat-value cyan" id="stat-total-bench">-</span>
+                </div>
+                <div class="header-stat-card">
+                    <span class="header-stat-label">Fastest Execution</span>
+                    <span class="header-stat-value emerald" id="stat-fastest-time">-</span>
+                </div>
+                <div class="header-stat-card">
+                    <span class="header-stat-label">Slowest Execution</span>
+                    <span class="header-stat-value rose" id="stat-slowest-time">-</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar + Content Workspace -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Sidebar Controls -->
+            <div class="sidebar">
+                <div class="sidebar-card">
+                    <div class="section-title">
+                        <i data-lucide="layers"></i> Benchmark Group
+                    </div>
+                    <ul class="group-list" id="group-list-container">
+                        <!-- Group items will be loaded dynamically -->
+                    </ul>
+                </div>
+
+                <div class="sidebar-card">
+                    <div class="section-title">
+                        <i data-lucide="settings"></i> Chart Options
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-row">
+                            <span class="setting-label">Y-Scale Type</span>
+                            <div class="btn-toggle-group">
+                                <button class="btn-toggle active" id="scale-log" onclick="setYScale('log')">Logarithmic</button>
+                                <button class="btn-toggle" id="scale-linear" onclick="setYScale('linear')">Linear</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Display Unit</span>
+                            <div class="btn-toggle-group">
+                                <button class="btn-toggle active" id="unit-auto" onclick="setUnit('auto')">Auto</button>
+                                <button class="btn-toggle" id="unit-ns" onclick="setUnit('ns')">ns Only</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Main Content Area -->
+            <div class="main-content">
+                
+                <!-- Chart Card -->
+                <div class="dashboard-card">
+                    <div class="card-header-row">
+                        <div class="card-title-container">
+                            <div class="card-title-icon"><i data-lucide="trending-up"></i></div>
+                            <div>
+                                <h2 id="group-chart-title">Group Performance</h2>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.15rem;">Execution time vs. input size parameter. Lower is better.</p>
+                            </div>
+                        </div>
+                        <div class="size-picker" id="param-size-picker">
+                            <!-- Size buttons loaded dynamically -->
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container" id="performance-chart"></div>
+                </div>
+
+                <!-- Metrics & Comparison Grid -->
+                <div class="metrics-grid">
+                    
+                    <!-- Performance Table Card -->
+                    <div class="dashboard-card">
+                        <div class="card-header-row">
+                            <div class="card-title-container">
+                                <div class="card-title-icon"><i data-lucide="table"></i></div>
+                                <div>
+                                    <h2>Performance Summary</h2>
+                                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Raw times at the selected size parameter</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Implementation</th>
+                                        <th>Mean Time</th>
+                                        <th>Std. Dev %</th>
+                                        <th>Comparison</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="performance-table-body">
+                                    <!-- Table contents loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Speedup Calculator Card -->
+                    <div class="dashboard-card">
+                        <div class="card-header-row">
+                            <div class="card-title-container">
+                                <div class="card-title-icon"><i data-lucide="calculator"></i></div>
+                                <div>
+                                    <h2>Speedup Calculator</h2>
+                                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Compare relative performance of two versions</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="calculator-container">
+                            <div class="calc-row">
+                                <div class="setting-row">
+                                    <span class="setting-label">Baseline (A)</span>
+                                    <select class="select-input" id="calc-base" onchange="runCalculator()"></select>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Compared (B)</span>
+                                    <select class="select-input" id="calc-comp" onchange="runCalculator()"></select>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Size</span>
+                                    <select class="select-input" id="calc-size" onchange="runCalculator()"></select>
+                                </div>
+                            </div>
+
+                            <div class="calc-result-box">
+                                <span class="calc-result-title" id="calc-res-title">Relative Performance</span>
+                                <div class="calc-result-value" id="calc-res-value">-</div>
+                                <div class="calc-result-desc" id="calc-res-desc">Select different functions to compare</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Detailed Stats Card -->
+                <div class="dashboard-card">
+                    <div class="card-header-row">
+                        <div class="card-title-container">
+                            <div class="card-title-icon"><i data-lucide="bar-chart-2"></i></div>
+                            <div>
+                                <h2>Detailed Statistical Bounds</h2>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem;">Confidence intervals, error metrics, and standard deviation bounds</p>
+                            </div>
+                        </div>
+                        <div class="setting-row" style="min-width: 200px;">
+                            <span class="setting-label">Select Implementation for Details</span>
+                            <select class="select-input" id="details-fn-select" onchange="loadDetailedStats()"></select>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Size</th>
+                                    <th>Mean (CI 95% Bounds)</th>
+                                    <th>Median Point Est.</th>
+                                    <th>Standard Deviation</th>
+                                    <th>Dispersion (Std Dev / Mean)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailed-table-body">
+                                <!-- Detailed rows loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Data Injection -->
+    <script>
+        const BENCHMARK_DATA = ##BENCHMARK_DATA_PLACEHOLDER##;
+        const STATS_DATA = ##STATS_DATA_PLACEHOLDER##;
+    </script>
+
+    <!-- App Logic -->
+    <script>
+        let selectedGroup = "";
+        let selectedSize = "";
+        let yScaleType = "log";
+        let displayUnit = "auto";
+        let mainChart = null;
+
+        function formatTimeValue(ns, forceNs = false) {
+            if (ns === null || ns === undefined) return "N/A";
+            if (forceNs || displayUnit === "ns") {
+                return `${ns.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} ns`;
+            }
+            
+            if (ns < 1000) {
+                return `${ns.toFixed(2)} ns`;
+            } else if (ns < 1000000) {
+                return `${(ns / 1000).toFixed(2)} µs`;
+            } else if (ns < 1000000000) {
+                return `${(ns / 1000000).toFixed(2)} ms`;
+            } else {
+                return `${(ns / 1000000000).toFixed(2)} s`;
+            }
+        }
+
+        function initDashboard() {
+            // Set stats
+            document.getElementById("gen-time").innerText = STATS_DATA.generated_at;
+            document.getElementById("stat-total-bench").innerText = STATS_DATA.total_benchmarks;
+            document.getElementById("stat-fastest-time").innerHTML = `${STATS_DATA.fastest_time_str}<br><small style="color: var(--text-muted); font-size: 0.65rem; font-weight: normal">${STATS_DATA.fastest_name}</small>`;
+            document.getElementById("stat-slowest-time").innerHTML = `${STATS_DATA.slowest_time_str}<br><small style="color: var(--text-muted); font-size: 0.65rem; font-weight: normal">${STATS_DATA.slowest_name}</small>`;
+            
+            // Set Group sidebar items
+            const sidebarContainer = document.getElementById("group-list-container");
+            sidebarContainer.innerHTML = "";
+            
+            const sortedGroups = Object.keys(BENCHMARK_DATA).sort();
+            selectedGroup = sortedGroups[0] || "";
+            
+            sortedGroups.forEach(group => {
+                const li = document.createElement("li");
+                
+                // Count benchmarks in this group
+                let count = 0;
+                Object.values(BENCHMARK_DATA[group]).forEach(arr => count += arr.length);
+                
+                li.innerHTML = `
+                    <button class="group-item-btn ${group === selectedGroup ? 'active' : ''}" onclick="selectGroup('${group}')">
+                        <span>${group}</span>
+                        <span class="group-badge">${count}</span>
+                    </button>
+                `;
+                sidebarContainer.appendChild(li);
+            });
+
+            lucide.createIcons();
+            selectGroup(selectedGroup);
+        }
+
+        function selectGroup(groupName) {
+            selectedGroup = groupName;
+            
+            // Update sidebar buttons
+            const btns = document.querySelectorAll(".group-item-btn");
+            btns.forEach(btn => {
+                const label = btn.querySelector("span").innerText;
+                if (label === groupName) {
+                    btn.classList.add("active");
+                } else {
+                    btn.classList.remove("active");
+                }
+            });
+
+            document.getElementById("group-chart-title").innerText = `Group performance: ${groupName}`;
+
+            // Find all sizes in this group
+            const sizesSet = new Set();
+            const groupData = BENCHMARK_DATA[groupName];
+            
+            Object.values(groupData).forEach(pts => {
+                pts.forEach(pt => {
+                    sizesSet.add(pt.value_str);
+                });
+            });
+
+            // Sort sizes numerically if possible
+            const sizes = Array.from(sizesSet).sort((a, b) => {
+                const na = parseFloat(a);
+                const nb = parseFloat(b);
+                if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
+                return na - nb;
+            });
+
+            selectedSize = sizes[sizes.length - 1] || ""; // default to largest size
+
+            // Load Size buttons
+            const sizePicker = document.getElementById("param-size-picker");
+            sizePicker.innerHTML = "";
+            sizes.forEach(sz => {
+                const btn = document.createElement("button");
+                btn.className = `size-btn ${sz === selectedSize ? 'active' : ''}`;
+                btn.innerText = `Size ${parseInt(sz).toLocaleString() || sz}`;
+                btn.onclick = () => selectSize(sz);
+                sizePicker.appendChild(btn);
+            });
+
+            // Setup calculator dropdowns
+            const calcBase = document.getElementById("calc-base");
+            const calcComp = document.getElementById("calc-comp");
+            const calcSize = document.getElementById("calc-size");
+            const detailsFnSelect = document.getElementById("details-fn-select");
+            
+            calcBase.innerHTML = "";
+            calcComp.innerHTML = "";
+            calcSize.innerHTML = "";
+            detailsFnSelect.innerHTML = "";
+
+            const fns = Object.keys(groupData).sort();
+            
+            fns.forEach(fn => {
+                const optA = document.createElement("option");
+                optA.value = fn;
+                optA.innerText = fn;
+                calcBase.appendChild(optA);
+                
+                const optB = document.createElement("option");
+                optB.value = fn;
+                optB.innerText = fn;
+                calcComp.appendChild(optB);
+
+                const optD = document.createElement("option");
+                optD.value = fn;
+                optD.innerText = fn;
+                detailsFnSelect.appendChild(optD);
+            });
+
+            // Set different default selections for A and B if possible
+            if (fns.length > 1) {
+                calcComp.selectedIndex = 1;
+            }
+
+            sizes.forEach(sz => {
+                const optS = document.createElement("option");
+                optS.value = sz;
+                optS.innerText = parseInt(sz).toLocaleString() || sz;
+                calcSize.appendChild(optS);
+            });
+
+            if (selectedSize) {
+                calcSize.value = selectedSize;
+            }
+
+            // Render components
+            renderChart();
+            renderTable();
+            runCalculator();
+            loadDetailedStats();
+        }
+
+        function selectSize(sizeStr) {
+            selectedSize = sizeStr;
+            const btns = document.querySelectorAll(".size-btn");
+            btns.forEach(btn => {
+                if (btn.innerText.replace(/,/g, '').includes(sizeStr) || btn.innerText.includes(parseInt(sizeStr).toLocaleString())) {
+                    btn.classList.add("active");
+                } else {
+                    btn.classList.remove("active");
+                }
+            });
+
+            document.getElementById("calc-size").value = sizeStr;
+
+            renderTable();
+            runCalculator();
+        }
+
+        function setYScale(scale) {
+            yScaleType = scale;
+            document.getElementById("scale-log").classList.toggle("active", scale === "log");
+            document.getElementById("scale-linear").classList.toggle("active", scale === "linear");
+            renderChart();
+        }
+
+        function setUnit(unit) {
+            displayUnit = unit;
+            document.getElementById("unit-auto").classList.toggle("active", unit === "auto");
+            document.getElementById("unit-ns").classList.toggle("active", unit === "ns");
+            renderChart();
+            renderTable();
+            runCalculator();
+            loadDetailedStats();
+        }
+
+        function renderChart() {
+            const groupData = BENCHMARK_DATA[selectedGroup];
+            const series = [];
+
+            // Find all unique sizes in this group to use as categories
+            const sizesSet = new Set();
+            Object.values(groupData).forEach(pts => {
+                pts.forEach(pt => {
+                    sizesSet.add(pt.value_str);
+                });
+            });
+            const sortedSizes = Array.from(sizesSet).sort((a, b) => {
+                const na = parseFloat(a);
+                const nb = parseFloat(b);
+                if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
+                return na - nb;
+            });
+
+            // Convert to human-readable labels for categories
+            const categories = sortedSizes.map(sz => {
+                const num = parseFloat(sz);
+                return isNaN(num) ? sz : num.toLocaleString();
+            });
+
+            // Map each function's data points to the categories
+            Object.keys(groupData).forEach(fnName => {
+                const pts = groupData[fnName];
+                const seriesData = sortedSizes.map((sz, idx) => {
+                    const pt = pts.find(p => p.value_str === sz);
+                    return {
+                        x: categories[idx],
+                        y: pt ? pt.mean_ns : null,
+                        meta: pt || null
+                    };
+                });
+                
+                series.push({
+                    name: fnName,
+                    data: seriesData
+                });
+            });
+
+            const options = {
+                series: series,
+                chart: {
+                    type: 'line',
+                    height: 400,
+                    background: 'transparent',
+                    foreColor: '#94a3b8',
+                    toolbar: {
+                        show: true,
+                        tools: {
+                            download: true,
+                            selection: false,
+                            zoom: true,
+                            zoomin: true,
+                            zoomout: true,
+                            pan: false,
+                            reset: true
+                        }
+                    },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800
+                    }
+                },
+                colors: ['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#ec4899'],
+                stroke: {
+                    curve: 'smooth',
+                    width: 3.5
+                },
+                grid: {
+                    borderColor: 'rgba(255, 255, 255, 0.05)',
+                    xaxis: {
+                        lines: { show: true }
+                    },
+                    yaxis: {
+                        lines: { show: true }
+                    }
+                },
+                markers: {
+                    size: 5,
+                    strokeColors: '#080c14',
+                    strokeWidth: 2,
+                    hover: {
+                        size: 7
+                    }
+                },
+                xaxis: {
+                    type: 'category',
+                    categories: categories,
+                    title: {
+                        text: 'Input Size Parameter',
+                        style: {
+                            color: '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }
+                    }
+                },
+                yaxis: {
+                    logarithmic: yScaleType === 'log',
+                    title: {
+                        text: displayUnit === 'ns' ? 'Execution Time (nanoseconds)' : 'Execution Time',
+                        style: {
+                            color: '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }
+                    },
+                    labels: {
+                        formatter: function(val) {
+                            return formatTimeValue(val);
+                        }
+                    }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    x: {
+                        show: true
+                    },
+                    y: {
+                        formatter: function(val, { series, seriesIndex, dataPointIndex, w }) {
+                            const dataPt = w.config.series[seriesIndex].data[dataPointIndex].meta;
+                            if (!dataPt) return "N/A";
+                            const mainTime = formatTimeValue(val);
+                            const bounds = `[${formatTimeValue(dataPt.mean_lower_ns)} - ${formatTimeValue(dataPt.mean_upper_ns)}]`;
+                            return `${mainTime} <br/><span style="color: var(--text-muted); font-size: 0.75rem;">CI: ${bounds}</span>`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'right',
+                    fontSize: '14px',
+                    fontFamily: 'Plus Jakarta Sans',
+                    markers: {
+                        radius: 12
+                    }
+                }
+            };
+
+            if (mainChart) {
+                mainChart.destroy();
+            }
+
+            mainChart = new ApexCharts(document.getElementById("performance-chart"), options);
+            mainChart.render();
+        }
+
+        function renderTable() {
+            const groupData = BENCHMARK_DATA[selectedGroup];
+            const tbody = document.getElementById("performance-table-body");
+            tbody.innerHTML = "";
+
+            // Find all functions and their time at the selected size
+            const tableRows = [];
+            let fastestTime = floatMin();
+            
+            function floatMin() { return Infinity; }
+
+            Object.keys(groupData).forEach(fn => {
+                const pt = groupData[fn].find(p => p.value_str === selectedSize);
+                if (pt) {
+                    tableRows.push({
+                        fnName: fn,
+                        mean_ns: pt.mean_ns,
+                        std_dev_pct: pt.std_dev_pct
+                    });
+                    if (pt.mean_ns < fastestTime) {
+                        fastestTime = pt.mean_ns;
+                    }
+                }
+            });
+
+            // Sort by mean execution time (fastest first)
+            tableRows.sort((a, b) => a.mean_ns - b.mean_ns);
+
+            tableRows.forEach((row, idx) => {
+                const isFastest = row.mean_ns === fastestTime;
+                let comparisonBadge = "";
+                
+                if (isFastest) {
+                    comparisonBadge = `<span class="badge badge-success">Fastest</span>`;
+                } else {
+                    const ratio = row.mean_ns / fastestTime;
+                    comparisonBadge = `<span class="badge badge-danger">${ratio.toFixed(2)}x slower</span>`;
+                }
+
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="font-weight: 600; color: ${isFastest ? 'var(--accent-emerald)' : 'var(--text-primary)'}">${row.fnName}</td>
+                    <td class="font-mono-val">${formatTimeValue(row.mean_ns)}</td>
+                    <td class="font-mono-val">${row.std_dev_pct.toFixed(2)}%</td>
+                    <td>${comparisonBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function runCalculator() {
+            const fnBase = document.getElementById("calc-base").value;
+            const fnComp = document.getElementById("calc-comp").value;
+            const sizeVal = document.getElementById("calc-size").value;
+            
+            const valBox = document.getElementById("calc-res-value");
+            const descBox = document.getElementById("calc-res-desc");
+            const titleBox = document.getElementById("calc-res-title");
+            
+            if (!fnBase || !fnComp || !sizeVal) return;
+
+            const groupData = BENCHMARK_DATA[selectedGroup];
+            const ptBase = groupData[fnBase].find(p => p.value_str === sizeVal);
+            const ptComp = groupData[fnComp].find(p => p.value_str === sizeVal);
+
+            if (!ptBase || !ptComp) {
+                valBox.innerText = "N/A";
+                descBox.innerText = "Data point not available for comparison";
+                return;
+            }
+
+            const tBase = ptBase.mean_ns;
+            const tComp = ptComp.mean_ns;
+
+            if (tBase === tComp) {
+                titleBox.innerText = "Equal Speed";
+                valBox.innerHTML = `1.0x`;
+                valBox.style.color = "var(--text-primary)";
+                descBox.innerText = "Both functions have the exact same execution time.";
+            } else if (tBase > tComp) {
+                // Compared is faster than baseline
+                const speedup = tBase / tComp;
+                titleBox.innerText = "Performance Speedup";
+                valBox.innerHTML = `${speedup.toFixed(2)}x Faster`;
+                valBox.style.color = "var(--accent-emerald)";
+                descBox.innerText = `"${fnComp}" is ${((1 - tComp/tBase)*100).toFixed(1)}% faster than "${fnBase}".`;
+            } else {
+                // Compared is slower
+                const slowdown = tComp / tBase;
+                titleBox.innerText = "Performance Slower";
+                valBox.innerHTML = `${slowdown.toFixed(2)}x Slower`;
+                valBox.style.color = "var(--accent-rose)";
+                descBox.innerText = `"${fnComp}" takes ${slowdown.toFixed(1)}x as long as "${fnBase}" to complete.`;
+            }
+        }
+
+        function loadDetailedStats() {
+            const fnName = document.getElementById("details-fn-select").value;
+            const tbody = document.getElementById("detailed-table-body");
+            tbody.innerHTML = "";
+
+            if (!fnName) return;
+
+            const pts = BENCHMARK_DATA[selectedGroup][fnName];
+            
+            pts.forEach(pt => {
+                const ciRange = `[${formatTimeValue(pt.mean_lower_ns)} - ${formatTimeValue(pt.mean_upper_ns)}]`;
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="font-weight: 600;">Size ${parseInt(pt.value_str).toLocaleString() || pt.value_str}</td>
+                    <td class="font-mono-val">
+                        <span style="font-weight: bold; color: var(--accent-cyan);">${formatTimeValue(pt.mean_ns)}</span>
+                        <br/><span style="color: var(--text-muted); font-size: 0.75rem;">CI range: ${ciRange}</span>
+                    </td>
+                    <td class="font-mono-val">${formatTimeValue(pt.median_ns)}</td>
+                    <td class="font-mono-val">${formatTimeValue(pt.std_dev_ns)}</td>
+                    <td>
+                        <span class="badge ${pt.std_dev_pct < 2 ? 'badge-success' : pt.std_dev_pct < 5 ? 'badge-warning' : 'badge-danger'}">
+                            ${pt.std_dev_pct.toFixed(2)}%
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initialize dashboard when loaded
+        window.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
+"""
+
+    # Inject data into template
+    data_json = json.dumps(raw_data, indent=2)
+    stats_json = json.dumps(summary_stats, indent=2)
+    
+    html_content = html_template.replace("##BENCHMARK_DATA_PLACEHOLDER##", data_json)
+    html_content = html_content.replace("##STATS_DATA_PLACEHOLDER##", stats_json)
+
+    output_path = "/home/kohara/apc-rs/benchmark_report.html"
+    with open(output_path, "w") as f:
+        f.write(html_content)
+
+    print(f"\nSuccess! Benchmark analysis dashboard generated successfully.")
+    print(f"File path: {output_path}")
+    print(f"Summary stats:")
+    print(f"  - Total benchmark measurements processed: {summary_stats['total_benchmarks']}")
+    print(f"  - Total unique groups: {summary_stats['group_count']}")
+    print(f"  - Fastest: {summary_stats['fastest_name']} -> {summary_stats['fastest_time_str']}")
+    print(f"  - Slowest: {summary_stats['slowest_name']} -> {summary_stats['slowest_time_str']}")
+
+if __name__ == "__main__":
+    main()

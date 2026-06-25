@@ -1,0 +1,65 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches:
+      - gh_page
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-pages:
+    name: Deploy Page & Report to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest release tag
+        id: get_tag
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch the latest release tag name using GitHub CLI (gh)
+          TAG=$(gh release view --json tagName -q .tagName)
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Prepare Pages directory
+        shell: bash
+        run: |
+          mkdir -p public
+          
+          # Copy our beautiful benchmark report to index.html so it serves as the home page of Pages
+          if [ -f benchmark_report.html ]; then
+            cp benchmark_report.html public/index.html
+          else
+            # Fallback if the report doesn't exist in the commit
+            echo "<html><body><h1>apcn Releases</h1><p>Visit <a href='https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_tag.outputs.TAG }}'>Releases</a> to download binaries.</p></body></html>" > public/index.html
+          fi
+          
+          # Inject direct links to the built release binaries at the bottom of the page
+          if [ -f public/index.html ]; then
+            DOWNLOAD_HTML="<div class='dashboard-card' style='margin-top: 2rem;'><div class='card-header-row'><div class='card-title-container'><div class='card-title-icon'><i data-lucide='download'></i></div><h2>Download Pre-Release Binaries</h2></div></div><p style='color: var(--text-secondary); margin-bottom: 1.5rem;'>Download pre-compiled binaries for the latest test release (<code>${{ steps.get_tag.outputs.TAG }}</code>):</p><div style='display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;'><div class='detail-mini-card'><div class='detail-mini-label' style='color: var(--accent-cyan);'><i data-lucide='linux' style='width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;'></i> Linux (x86_64)</div><div style='display: flex; gap: 0.5rem; margin-top: 0.5rem;'><a href='https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.TAG }}/apcn-rug-linux-x86_64.tar.gz' class='size-btn active' style='text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; flex: 1; text-align: center;'>rug backend</a><a href='https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.TAG }}/apcn-dashu-linux-x86_64.tar.gz' class='size-btn' style='text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; flex: 1; text-align: center;'>dashu backend</a></div></div><div class='detail-mini-card'><div class='detail-mini-label' style='color: var(--accent-purple);'><i data-lucide='apple' style='width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;'></i> macOS (Apple Silicon)</div><div style='display: flex; gap: 0.5rem; margin-top: 0.5rem;'><a href='https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.TAG }}/apcn-rug-macos-aarch64.tar.gz' class='size-btn active' style='text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; flex: 1; text-align: center;'>rug backend</a><a href='https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.TAG }}/apcn-dashu-macos-aarch64.tar.gz' class='size-btn' style='text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; flex: 1; text-align: center;'>dashu backend</a></div></div><div class='detail-mini-card'><div class='detail-mini-label' style='color: var(--accent-amber);'><i data-lucide='monitor' style='width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;'></i> Windows (x86_64)</div><div style='display: flex; gap: 0.5rem; margin-top: 0.5rem;'><a href='https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.TAG }}/apcn-rug-windows-x86_64.zip' class='size-btn active' style='text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; flex: 1; text-align: center;'>rug backend</a><a href='https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.TAG }}/apcn-dashu-windows-x86_64.zip' class='size-btn' style='text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; flex: 1; text-align: center;'>dashu backend</a></div></div></div></div>"
+          
+          # Inject just before the closing body tag of index.html
+          sed -i "s|</body>|$DOWNLOAD_HTML</body>|g" public/index.html
+        fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

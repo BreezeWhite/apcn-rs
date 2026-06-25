@@ -5,7 +5,7 @@ use std::time::Instant;
 use apcn::backend::BigFloat;
 use apcn::cli::{Actions, Cli};
 use apcn::log::generic_log::{compute_ln, compute_ln_parallel};
-use apcn::{e, log, pi, sqrt};
+use apcn::{e, log, pi, sqrt, phi};
 use clap::Parser;
 
 fn gen_test_data() -> Result<()> {
@@ -29,9 +29,29 @@ fn _main() -> Result<()> {
     Ok(())
 }
 
-fn main() {
+#[cfg(feature = "rug")]
+const BACKEND: &str = "rug";
+
+#[cfg(feature = "dashu")]
+const BACKEND: &str = "dashu";
+
+fn main_cli() {
     let arg = Cli::parse();
-    let func = match arg.action {
+
+    if arg.backend {
+        println!("{BACKEND}");
+        return;
+    }
+
+    let action = match arg.action {
+        Some(action) => action,
+        None => {
+            println!("Please specify an action. Use --help for more information.");
+            return;
+        }
+    };
+
+    let func = match action {
         Actions::Pi => {
             if arg.parallel {
                 pi::compute_parallel
@@ -77,13 +97,13 @@ fn main() {
 
     let out_str = out.to_fixed_string();
     println!("{}", &out_str[..(arg.digits as usize + 2)]);
-    
+
     if arg.bench {
         println!("Elapsed: {:#?}", start.elapsed());
     }
 }
 
-fn main_sub() {
+fn main() {
     let prec = 1_000_000;
     let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
 
@@ -93,7 +113,8 @@ fn main_sub() {
     // let val = log::compute(prec);
     // let val = BigFloat::with_val(binary_prec, x).ln();
     // let val = compute_ln_parallel(x as f64, prec);
-    let val = pi::compute_parallel(prec);
+    // let val = pi::compute_parallel(prec);
+    let val = phi::compute(prec);
     let dura = start.elapsed();
     // println!("{}", val.to_string());
     println!("Compute parallel duration: {dura:#?}");
@@ -104,14 +125,14 @@ fn main_sub() {
     println!("Format duration: {dura:#?}");
 
     // -----
-    let start = Instant::now();
-    let val = compute_ln(x as f64, prec);
-    let dura = start.elapsed();
-    // println!("{}", val.to_fixed_string());
-    println!("Compute generic duration: {dura:#?}");
+    // let start = Instant::now();
+    // let val = compute_ln(x as f64, prec);
+    // let dura = start.elapsed();
+    // // println!("{}", val.to_fixed_string());
+    // println!("Compute generic duration: {dura:#?}");
 
-    let start = Instant::now();
-    let _ = val.to_string();
-    let dura = start.elapsed();
-    println!("Format duration: {dura:#?}");
+    // let start = Instant::now();
+    // let _ = val.to_string();
+    // let dura = start.elapsed();
+    // println!("Format duration: {dura:#?}");
 }

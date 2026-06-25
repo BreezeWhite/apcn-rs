@@ -86,14 +86,14 @@ To use `apcn` as a library in your own Cargo project, add it to your `Cargo.toml
 ```toml
 [dependencies]
 # Use rug (default) for maximum performance
-apcn = { version = "0.1" }
+apcn = { version = "0.2" }
 ```
 
 Or for a pure-Rust, zero-dependency setup:
 
 ```toml
 [dependencies]
-apcn = { version = "0.1", default-features = false, features = ["dashu"] }
+apcn = { version = "0.2", default-features = false, features = ["dashu"] }
 ```
 
 ### Rust Example

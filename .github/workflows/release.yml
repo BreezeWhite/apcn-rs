@@ -111,20 +111,21 @@ jobs:
         shell: bash
         run: cargo build --release --no-default-features --features cli,dashu
 
-      - name: Build binary (rug backend)
-        if: matrix.backend == 'rug'
-        shell: ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
+      - name: Build binary (rug backend - Unix)
+        if: matrix.backend == 'rug' && matrix.os != 'windows-latest'
+        shell: bash
+        run: cargo build --release
+
+      - name: Build binary (rug backend - Windows)
+        if: matrix.backend == 'rug' && matrix.os == 'windows-latest'
+        shell: msys2 {0}
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            echo "=== Debugging: Locating m4.exe ==="
-            find /c/msys64 -name "m4.exe" 2>/dev/null || true
-            find /usr/bin -name "m4.exe" 2>/dev/null || true
-            
-            export PATH="/c/msys64/usr/bin:$PATH"
-            CC=clang cargo build --release
-          else
-            cargo build --release
-          fi
+          echo "=== Debugging: Locating m4.exe ==="
+          find /c/msys64 -name "m4.exe" 2>/dev/null || true
+          find /usr/bin -name "m4.exe" 2>/dev/null || true
+          
+          export PATH="/c/msys64/usr/bin:$PATH"
+          CC=clang cargo build --release
 
       - name: Package binary (Unix)
         if: matrix.os != 'windows-latest'

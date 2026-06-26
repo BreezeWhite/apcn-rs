@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en-US">
+
+<head>
+    <meta charset="utf-8" />
+    <title>hello-wasm example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: sans-serif;
+        }
+
+        p {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="module">
+        // import init, { compute_pi, compute_e, ln, sqrt } from "./pkg/apcn.js";
+        import init, { compute_pi, compute_e, ln, sqrt } from "https://cdn.jsdelivr.net/npm/@breezewhite_yo/apcn/apcn.js";
+
+        init().then(() => {
+            const input = document.getElementById("input");
+            const mode = document.getElementById("mode");
+            const button = document.getElementById("compute");
+            const result = document.getElementById("result");
+            const elapsed = document.getElementById("elapsed");
+
+            const runCalculation = () => {
+                const value = Number.parseInt(input.value, 10);
+
+                if (Number.isNaN(value) || value <= 0) {
+                    result.textContent = "Please enter a positive number.";
+                    elapsed.textContent = "";
+                    return;
+                }
+
+                const start = performance.now();
+                let output;
+
+                switch (mode.value) {
+                    case "ln":
+                        output = ln(value, value);
+                        break;
+                    case "sqrt":
+                        output = sqrt(value, value);
+                        break;
+                    case "e":
+                        output = compute_e(value);
+                        break;
+                    default:
+                        output = compute_pi(value);
+                }
+
+                const duration = performance.now() - start;
+
+                result.textContent = output;
+                elapsed.textContent = `Time: ${duration.toFixed(2)} ms`;
+            };
+
+            button.addEventListener("click", runCalculation);
+            input.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    runCalculation();
+                }
+            });
+        });
+    </script>
+    <label for="mode">Calculation</label>
+    <select id="mode">
+        <option value="pi">compute_pi</option>
+        <option value="e">compute_e</option>
+        <option value="ln">ln</option>
+        <option value="sqrt">sqrt</option>
+    </select>
+    <input type="number" id="input" placeholder="Enter a number" value="1000" />
+    <button id="compute">Compute</button>
+    <h3 id="elapsed"></h3>
+    <p id="result"></p>
+</body>
+
+</html>

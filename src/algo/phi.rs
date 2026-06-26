@@ -51,6 +51,36 @@ fn binary_splitting(
     res
 }
 
+fn binary_splitting_parallel(mut t_mx: Matrix, mut power: u32) -> Matrix {
+    let mut res: Matrix = vec![vec![1.into(), 0.into()], vec![0.into(), 1.into()]];
+
+    // Numbers grow exponentially as power is halved.
+    // We only use parallel multiplications when power is small (i.e. numbers are large).
+    let threshold = (power / 4096).max(1);
+
+    while power > 0 {
+        if power < threshold {
+            if power % 2 == 1 {
+                let (new_res, new_t_mx) = rayon::join(
+                    || matrix_mul_para(&res, &t_mx),
+                    || matrix_mul_para(&t_mx, &t_mx),
+                );
+                res = new_res;
+                t_mx = new_t_mx;
+            } else {
+                t_mx = matrix_mul_para(&t_mx, &t_mx);
+            }
+        } else {
+            if power % 2 == 1 {
+                res = matrix_mul(&res, &t_mx);
+            }
+            t_mx = matrix_mul(&t_mx, &t_mx);
+        }
+        power /= 2;
+    }
+    res
+}
+
 // Use Fibonacci series to calculate phi.
 pub fn compute(prec: u32) -> BigFloat {
     let terms = ((prec as f64 * 4.79) + 10.) as u32;
@@ -80,7 +110,7 @@ pub fn compute_parallel(prec: u32) -> BigFloat {
 
     let terms = ((prec as f64 * 4.79) + 10.) as u32;
     let t_mx = vec![vec![1.into(), 1.into()], vec![1.into(), 0.into()]];
-    let t_out = binary_splitting(t_mx, terms, matrix_mul_para);
+    let t_out = binary_splitting_parallel(t_mx, terms);
 
     let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
 

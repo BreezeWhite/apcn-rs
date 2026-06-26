@@ -141,7 +141,7 @@ echo "Successfully installed apcn to $INSTALL_DIR/$BINARY_NAME!"
 
 # Verify if install path is in PATH variable
 PATH_OK="false"
-case ";$PATH;" in
+case ":$PATH:" in
   *:"$INSTALL_DIR":*)
     PATH_OK="true"
     ;;

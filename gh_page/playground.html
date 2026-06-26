@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>apcn - WebAssembly Constant Playground</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-main: #080c14;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(26, 36, 56, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --border-accent: rgba(6, 182, 212, 0.3);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            
+            --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+            --gradient-emerald: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            --gradient-dark: linear-gradient(180deg, #080c14 0%, #0e1726 100%);
+            
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            
+            --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            background-image: var(--gradient-dark);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+            padding: 2rem;
+        }
+
+        /* Ambient Glow Blobs */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.04) 50%, transparent 100%);
+            top: -200px;
+            right: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .ambient-glow-2 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, rgba(139, 92, 246, 0.03) 50%, transparent 100%);
+            bottom: -100px;
+            left: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Glassmorphism Header */
+        header {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-title-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .header-logo i {
+            font-size: 22px;
+            color: #fff;
+        }
+
+        .header-titles h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-titles p {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+        }
+
+        /* Playground Layout Grid */
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .playground-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .select-input, .text-input {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.85rem;
+            border-radius: 12px;
+            font-family: var(--font-main);
+            font-weight: 500;
+            outline: none;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .select-input:focus, .text-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Preset Precision Buttons */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .preset-btn.active {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        /* Compute Button */
+        .compute-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 12px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .compute-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
+        }
+
+        .compute-btn:active {
+            transform: translateY(0);
+        }
+
+        .compute-btn:disabled {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Output Card */
+        .output-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 480px;
+        }
+
+        .output-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .stats-display {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-badge {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .stat-badge.emerald {
+            color: var(--accent-emerald);
+            background: rgba(16, 185, 129, 0.05);
+            border-color: rgba(16, 185, 129, 0.15);
+        }
+
+        .result-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .textarea-viewport {
+            width: 100%;
+            flex: 1;
+            min-height: 320px;
+            background: #05080f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            color: #f1f5f9;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            word-wrap: break-word;
+            overflow-y: auto;
+            transition: border-color 0.2s ease;
+        }
+
+        .textarea-viewport:focus {
+            border-color: var(--border-hover);
+        }
+
+        /* Result Viewport Custom Scrollbar */
+        .textarea-viewport::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .textarea-viewport::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .textarea-viewport::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .textarea-viewport::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .copy-button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.2s ease;
+        }
+
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        /* Computation Loader Overlay */
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(8, 12, 20, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(139, 92, 246, 0.1);
+            border-top: 4px solid var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-purple);
+            letter-spacing: 0.5px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="container">
+        
+        <!-- Header -->
+        <header>
+            <div class="header-title-section">
+                <!-- Navigation Home Button -->
+                <a href="index.html" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; margin-right: 0.5rem; transition: all 0.2s ease; cursor: pointer;" title="Back to Home">
+                    <i data-lucide="home" style="width: 20px; height: 20px;"></i>
+                </a>
+                <div class="header-logo">
+                    <i data-lucide="terminal"></i>
+                </div>
+                <div class="header-titles">
+                    <h1>WASM Constant Playground</h1>
+                    <p>High-precision computation compiled directly from Rust to WebAssembly</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="playground-grid">
+            
+            <!-- Left Config Panel -->
+            <div class="sidebar-card">
+                <div class="section-title">
+                    <i data-lucide="sliders"></i> Settings
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label" for="mode-select">Constant Action</label>
+                    <select class="select-input" id="mode-select">
+                        <option value="pi">&pi; (Pi)</option>
+                        <option value="e">e (Euler's Number)</option>
+                        <option value="phi">&phi; (Golden Ratio)</option>
+                        <option value="ln2">ln(2) (Natural Log of 2)</option>
+                        <option value="ln">ln(x) (Natural Log)</option>
+                        <option value="sqrt2">sqrt(2) (Square Root of 2)</option>
+                        <option value="sqrt">sqrt(x) (Square Root)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group" id="input-x-group" style="display: none;">
+                    <label class="setting-label" for="value-x-input">Value (x)</label>
+                    <input class="text-input" type="number" id="value-x-input" value="2" min="2" step="1"/>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label" for="precision-input">Digits Precision</label>
+                    <input class="text-input" type="number" id="precision-input" value="1000" min="5" max="1000000" step="100"/>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">Preset Presets</label>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="setPrecision(100)">100</button>
+                        <button class="preset-btn active" id="preset-default" onclick="setPrecision(1000)">1K</button>
+                        <button class="preset-btn" onclick="setPrecision(10000)">10K</button>
+                        <button class="preset-btn" onclick="setPrecision(50000)">50K</button>
+                    </div>
+                </div>
+
+                <button class="compute-btn" id="compute-btn" disabled>
+                    <i data-lucide="play" style="width: 18px; height: 18px;"></i>
+                    Initialize WASM...
+                </button>
+            </div>
+
+            <!-- Right Output Viewport -->
+            <div class="output-card">
+                <div class="output-header-row">
+                    <div class="section-title" style="margin-bottom: 0;">
+                        <i data-lucide="cpu"></i> Computation Output
+                    </div>
+                    <div class="stats-display">
+                        <span class="stat-badge emerald" id="stat-elapsed" style="display: none;">Time: 0.00 ms</span>
+                        <button class="copy-button" id="copy-btn" onclick="copyResults()" style="display: none;">
+                            <i data-lucide="copy" id="copy-btn-icon" style="width: 14px; height: 14px;"></i> Copy Output
+                        </button>
+                    </div>
+                </div>
+
+                <div class="result-container">
+                    <div class="loader-overlay" id="loader-overlay">
+                        <div class="spinner"></div>
+                        <div class="loader-text">APCN Computing...</div>
+                    </div>
+                    <textarea class="textarea-viewport" id="output-viewport" readonly placeholder="WASM package is initializing. Please wait..."></textarea>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- WASM Script Execution -->
+    <script type="module">
+        import init, { compute_pi, compute_e, compute_sqrt2, sqrt, ln, compute_ln2, compute_phi } from "https://cdn.jsdelivr.net/npm/@breezewhite_yo/apcn/apcn.js";
+
+        const modeSelect = document.getElementById("mode-select");
+        const valueXInput = document.getElementById("value-x-input");
+        const inputXGroup = document.getElementById("input-x-group");
+        const precisionInput = document.getElementById("precision-input");
+        const computeBtn = document.getElementById("compute-btn");
+        const outputViewport = document.getElementById("output-viewport");
+        const elapsedBadge = document.getElementById("stat-elapsed");
+        const copyBtn = document.getElementById("copy-btn");
+        const loaderOverlay = document.getElementById("loader-overlay");
+
+        // Handle calculations that take parameters vs fixed constants
+        modeSelect.addEventListener("change", () => {
+            const mode = modeSelect.value;
+            if (mode === "ln" || mode === "sqrt") {
+                inputXGroup.style.display = "flex";
+            } else {
+                inputXGroup.style.display = "none";
+            }
+        });
+
+        // Initialize WebAssembly package from CDN
+        init().then(() => {
+            computeBtn.disabled = false;
+            computeBtn.innerHTML = `<i data-lucide="play" style="width: 18px; height: 18px;"></i> Compute Constant`;
+            outputViewport.placeholder = "WASM initialized! Adjust settings and click 'Compute Constant' to run calculations.";
+            lucide.createIcons();
+
+            const runComputation = () => {
+                const mode = modeSelect.value;
+                const digits = parseInt(precisionInput.value, 10);
+                const xVal = parseInt(valueXInput.value, 10);
+
+                if (isNaN(digits) || digits <= 0) {
+                    alert("Please enter a valid positive precision limit.");
+                    return;
+                }
+
+                // Show computation overlay loader
+                loaderOverlay.classList.add("active");
+
+                // Execute async timeout to let browser render the overlay before blocking thread on WASM calculation
+                setTimeout(() => {
+                    try {
+                        const start = performance.now();
+                        let resultString = "";
+
+                        switch (mode) {
+                            case "ln":
+                                resultString = ln(xVal, digits);
+                                break;
+                            case "sqrt":
+                                resultString = sqrt(xVal, digits);
+                                break;
+                            case "e":
+                                resultString = compute_e(digits);
+                                break;
+                            case "phi":
+                                resultString = compute_phi(digits);
+                                break;
+                            case "ln2":
+                                resultString = compute_ln2(digits);
+                                break;
+                            case "sqrt2":
+                                resultString = compute_sqrt2(digits);
+                                break;
+                            default:
+                                resultString = compute_pi(digits);
+                        }
+
+                        const duration = performance.now() - start;
+
+                        // Display output results
+                        outputViewport.value = resultString;
+                        
+                        // Display stats
+                        elapsedBadge.innerText = `Time: ${duration.toFixed(2)} ms`;
+                        elapsedBadge.style.display = "inline-block";
+                        copyBtn.style.display = "inline-flex";
+                    } catch (error) {
+                        console.error("WASM computation error:", error);
+                        outputViewport.value = `Computation failed: ${error.message || error}`;
+                        elapsedBadge.style.display = "none";
+                        copyBtn.style.display = "none";
+                    } finally {
+                        loaderOverlay.classList.remove("active");
+                    }
+                }, 50);
+            };
+
+            computeBtn.addEventListener("click", runComputation);
+            
+            // Allow Enter key triggers inside input boxes
+            precisionInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    runComputation();
+                }
+            });
+            valueXInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    runComputation();
+                }
+            });
+        }).catch(err => {
+            console.error("WASM loading failed:", err);
+            outputViewport.placeholder = `Failed to load WASM module: ${err.message || err}`;
+        });
+    </script>
+
+    <!-- UI Logic Scripts -->
+    <script>
+        function setPrecision(value) {
+            const input = document.getElementById("precision-input");
+            input.value = value;
+
+            // Highlight active button
+            const buttons = document.querySelectorAll(".preset-btn");
+            buttons.forEach(btn => {
+                if (btn.innerText.includes(value >= 1000 ? `${value/1000}K` : value) || btn.innerText === String(value)) {
+                    btn.classList.add("active");
+                } else {
+                    btn.classList.remove("active");
+                }
+            });
+        }
+
+        async function copyResults() {
+            const viewport = document.getElementById("output-viewport");
+            const btnIcon = document.getElementById("copy-btn-icon");
+            const btn = document.getElementById("copy-btn");
+            
+            try {
+                await navigator.clipboard.writeText(viewport.value);
+                btnIcon.setAttribute("data-lucide", "check");
+                btn.style.color = "var(--accent-emerald)";
+                btn.style.borderColor = "var(--accent-emerald)";
+                lucide.createIcons();
+                
+                setTimeout(() => {
+                    btnIcon.setAttribute("data-lucide", "copy");
+                    btn.style.color = "";
+                    btn.style.borderColor = "";
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error("Failed to copy results:", err);
+            }
+        }
+    </script>
+</body>
+</html>

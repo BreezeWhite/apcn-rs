@@ -1,116 +1,4 @@
-import os
-import json
-import sys
-from datetime import datetime
-
-def format_time(ns):
-    if ns is None:
-        return "N/A"
-    if ns < 1000:
-        return f"{ns:.2f} ns"
-    elif ns < 1000000:
-        return f"{ns / 1000:.2f} µs"
-    elif ns < 1000000000:
-        return f"{ns / 1000000:.2f} ms"
-    else:
-        return f"{ns / 1000000000:.2f} s"
-
-def main():
-    criterion_dir = "/home/kohara/apc-rs/target/criterion"
-    if not os.path.exists(criterion_dir):
-        print(f"Error: Criterion directory '{criterion_dir}' not found.")
-        sys.exit(1)
-
-    print("Scanning Criterion benchmark directory...")
-    raw_data = {}
-
-    for root, dirs, files in os.walk(criterion_dir):
-        if "new" in dirs:
-            new_dir = os.path.join(root, "new")
-            bench_path = os.path.join(new_dir, "benchmark.json")
-            est_path = os.path.join(new_dir, "estimates.json")
-            
-            if os.path.exists(bench_path) and os.path.exists(est_path):
-                try:
-                    with open(bench_path, "r") as f:
-                        bench_data = json.load(f)
-                    with open(est_path, "r") as f:
-                        est_data = json.load(f)
-                    
-                    group_id = bench_data.get("group_id")
-                    function_id = bench_data.get("function_id") or "default"
-                    value_str = bench_data.get("value_str")
-                    
-                    try:
-                        val = float(value_str) if '.' in value_str else int(value_str)
-                    except (ValueError, TypeError):
-                        val = value_str
-                    
-                    mean = est_data.get("mean", {})
-                    median = est_data.get("median", {})
-                    std_dev = est_data.get("std_dev", {})
-                    
-                    point_data = {
-                        "value_str": value_str,
-                        "value_num": val,
-                        "mean_ns": mean.get("point_estimate"),
-                        "mean_lower_ns": mean.get("confidence_interval", {}).get("lower_bound"),
-                        "mean_upper_ns": mean.get("confidence_interval", {}).get("upper_bound"),
-                        "median_ns": median.get("point_estimate"),
-                        "std_dev_ns": std_dev.get("point_estimate"),
-                        "std_dev_pct": (std_dev.get("point_estimate") / mean.get("point_estimate") * 100) if mean.get("point_estimate") else 0
-                    }
-                    
-                    if group_id not in raw_data:
-                        raw_data[group_id] = {}
-                    if function_id not in raw_data[group_id]:
-                        raw_data[group_id][function_id] = []
-                    
-                    raw_data[group_id][function_id].append(point_data)
-                except Exception as e:
-                    print(f"Warning: Failed to parse benchmark at {root}: {e}")
-
-    # Sort the points for each function by their numeric value
-    for group_id in raw_data:
-        for function_id in raw_data[group_id]:
-            raw_data[group_id][function_id].sort(
-                key=lambda x: x["value_num"] if isinstance(x["value_num"], (int, float)) else 0
-            )
-
-    # Calculate some general stats
-    total_benchmarks = 0
-    fastest_time = float('inf')
-    fastest_name = ""
-    slowest_time = 0
-    slowest_name = ""
-
-    for g_id, fns in raw_data.items():
-        for f_id, pts in fns.items():
-            total_benchmarks += len(pts)
-            for pt in pts:
-                m_ns = pt["mean_ns"]
-                if m_ns is not None:
-                    if m_ns < fastest_time:
-                        fastest_time = m_ns
-                        fastest_name = f"{g_id}/{f_id} ({pt['value_str']})"
-                    if m_ns > slowest_time:
-                        slowest_time = m_ns
-                        slowest_name = f"{g_id}/{f_id} ({pt['value_str']})"
-
-    summary_stats = {
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "total_benchmarks": total_benchmarks,
-        "fastest_time": fastest_time if fastest_time != float('inf') else 0,
-        "fastest_time_str": format_time(fastest_time) if fastest_time != float('inf') else "N/A",
-        "fastest_name": fastest_name,
-        "slowest_time": slowest_time,
-        "slowest_time_str": format_time(slowest_time) if slowest_time > 0 else "N/A",
-        "slowest_name": slowest_name,
-        "group_count": len(raw_data)
-    }
-
-    # Generate HTML content
-    html_template = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -440,7 +328,7 @@ def main():
             display: flex;
             flex-direction: column;
             gap: 2rem;
-            min-width: 0; /* Prevents flex items from overflowing */
+            min-width: 0;
         }
 
         .dashboard-card {
@@ -494,7 +382,6 @@ def main():
             width: 100%;
         }
 
-        /* Analysis Metrics & Speedups Grid */
         .metrics-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -507,7 +394,6 @@ def main():
             }
         }
 
-        /* Tables styling */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -569,25 +455,18 @@ def main():
             border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
-        .badge-warning {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--accent-amber);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-        }
-
         .badge-danger {
             background: rgba(244, 63, 94, 0.15);
             color: var(--accent-rose);
             border: 1px solid rgba(244, 63, 94, 0.2);
         }
 
-        .badge-neutral {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-secondary);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.2);
         }
 
-        /* Calculator Container */
         .calculator-container {
             display: flex;
             flex-direction: column;
@@ -661,28 +540,6 @@ def main():
             margin-top: 0.5rem;
         }
 
-        /* Info boxes */
-        .info-box {
-            display: flex;
-            gap: 0.75rem;
-            background: rgba(6, 182, 212, 0.05);
-            border: 1px solid rgba(6, 182, 212, 0.15);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            align-items: flex-start;
-        }
-
-        .info-box i {
-            color: var(--accent-cyan);
-            margin-top: 0.15rem;
-        }
-
-        .info-box-content p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
         .size-picker {
             display: flex;
             gap: 0.5rem;
@@ -713,14 +570,6 @@ def main():
             color: var(--accent-cyan);
         }
 
-        /* Detail Cards grid */
-        .detail-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
         .detail-mini-card {
             background: rgba(255, 255, 255, 0.015);
             border: 1px solid var(--border);
@@ -737,12 +586,6 @@ def main():
             text-transform: uppercase;
             font-weight: 700;
         }
-
-        .detail-mini-value {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
     </style>
 </head>
 <body>
@@ -754,6 +597,10 @@ def main():
         <!-- Dashboard Header -->
         <header>
             <div class="header-title-section">
+                <!-- Navigation Home Button -->
+                <a href="index.html" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; margin-right: 0.5rem; transition: all 0.2s ease; cursor: pointer;" title="Back to Home">
+                    <i data-lucide="home" style="width: 20px; height: 20px;"></i>
+                </a>
                 <div class="header-logo">
                     <i data-lucide="activity"></i>
                 </div>
@@ -946,19 +793,54 @@ def main():
         </div>
     </div>
 
-    <!-- Data Injection -->
-    <script>
-        const BENCHMARK_DATA = ##BENCHMARK_DATA_PLACEHOLDER##;
-        const STATS_DATA = ##STATS_DATA_PLACEHOLDER##;
-    </script>
-
     <!-- App Logic -->
     <script>
+        let BENCHMARK_DATA = null;
+        let STATS_DATA = null;
+        
         let selectedGroup = "";
         let selectedSize = "";
         let yScaleType = "log";
         let displayUnit = "auto";
         let mainChart = null;
+
+        // Fetch data at runtime
+        async function loadBenchmarkData() {
+            try {
+                const response = await fetch('./benchmark_data.json');
+                if (!response.ok) {
+                    throw new Error(`Failed to load benchmark_data.json: ${response.statusText}`);
+                }
+                const data = await response.json();
+                BENCHMARK_DATA = data.benchmarks;
+                STATS_DATA = data.stats;
+                
+                // Initialize Dashboard
+                initDashboard();
+            } catch (error) {
+                console.error("CORS or network error loading JSON file:", error);
+                
+                // Render a beautiful, glassmorphic fallback message for local filesystem CORS block
+                document.body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #080c14; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; padding: 2rem; text-align: center;">
+                        <div style="width: 72px; height: 72px; border-radius: 20px; background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.2); display: flex; align-items: center; justify-content: center; color: #f43f5e; margin-bottom: 2rem; font-size: 32px; box-shadow: 0 0 20px rgba(244, 63, 94, 0.1);">!</div>
+                        <h1 style="font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #f43f5e 0%, #f59e0b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; margin-bottom: 1rem;">CORS Policy Restriction</h1>
+                        <p style="color: #94a3b8; max-width: 600px; margin-bottom: 2rem; line-height: 1.6; font-size: 1rem;">
+                            To view the benchmarks, the browser must fetch the separate reference file <code>benchmark_data.json</code>. Direct local file access (via the <code>file://</code> protocol) triggers browser cross-origin (CORS) security restrictions.
+                        </p>
+                        <div style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); padding: 1.5rem 2rem; border-radius: 16px; font-family: 'JetBrains Mono', monospace; text-align: left; margin-bottom: 2rem; font-size: 0.9rem; line-height: 1.5; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                            <span style="color: #64748b;"># Run a quick local HTTP server:</span><br/>
+                            <span style="color: #06b6d4;">python3 -m http.server 8000</span><br/><br/>
+                            <span style="color: #64748b;"># Then open the dashboard at:</span><br/>
+                            <span style="color: #10b981;">http://localhost:8000/gh_page/report.html</span>
+                        </div>
+                        <a href="index.html" style="color: #06b6d4; text-decoration: none; font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: color 0.2s ease;">
+                            &larr; Back to Home Page
+                        </a>
+                    </div>
+                `;
+            }
+        }
 
         function formatTimeValue(ns, forceNs = false) {
             if (ns === null || ns === undefined) return "N/A";
@@ -1301,11 +1183,8 @@ def main():
             const tbody = document.getElementById("performance-table-body");
             tbody.innerHTML = "";
 
-            // Find all functions and their time at the selected size
             const tableRows = [];
-            let fastestTime = floatMin();
-            
-            function floatMin() { return Infinity; }
+            let fastestTime = Infinity;
 
             Object.keys(groupData).forEach(fn => {
                 const pt = groupData[fn].find(p => p.value_str === selectedSize);
@@ -1321,10 +1200,9 @@ def main():
                 }
             });
 
-            // Sort by mean execution time (fastest first)
             tableRows.sort((a, b) => a.mean_ns - b.mean_ns);
 
-            tableRows.forEach((row, idx) => {
+            tableRows.forEach((row) => {
                 const isFastest = row.mean_ns === fastestTime;
                 let comparisonBadge = "";
                 
@@ -1376,14 +1254,12 @@ def main():
                 valBox.style.color = "var(--text-primary)";
                 descBox.innerText = "Both functions have the exact same execution time.";
             } else if (tBase > tComp) {
-                // Compared is faster than baseline
                 const speedup = tBase / tComp;
                 titleBox.innerText = "Performance Speedup";
                 valBox.innerHTML = `${speedup.toFixed(2)}x Faster`;
                 valBox.style.color = "var(--accent-emerald)";
                 descBox.innerText = `"${fnComp}" is ${((1 - tComp/tBase)*100).toFixed(1)}% faster than "${fnBase}".`;
             } else {
-                // Compared is slower
                 const slowdown = tComp / tBase;
                 titleBox.innerText = "Performance Slower";
                 valBox.innerHTML = `${slowdown.toFixed(2)}x Slower`;
@@ -1422,31 +1298,8 @@ def main():
             });
         }
 
-        // Initialize dashboard when loaded
-        window.addEventListener('DOMContentLoaded', initDashboard);
+        // Initialize dashboard when loaded by loading separate JSON data
+        window.addEventListener('DOMContentLoaded', loadBenchmarkData);
     </script>
 </body>
 </html>
-"""
-
-    # Inject data into template
-    data_json = json.dumps(raw_data, indent=2)
-    stats_json = json.dumps(summary_stats, indent=2)
-    
-    html_content = html_template.replace("##BENCHMARK_DATA_PLACEHOLDER##", data_json)
-    html_content = html_content.replace("##STATS_DATA_PLACEHOLDER##", stats_json)
-
-    output_path = "/home/kohara/apc-rs/benchmark_report.html"
-    with open(output_path, "w") as f:
-        f.write(html_content)
-
-    print(f"\nSuccess! Benchmark analysis dashboard generated successfully.")
-    print(f"File path: {output_path}")
-    print(f"Summary stats:")
-    print(f"  - Total benchmark measurements processed: {summary_stats['total_benchmarks']}")
-    print(f"  - Total unique groups: {summary_stats['group_count']}")
-    print(f"  - Fastest: {summary_stats['fastest_name']} -> {summary_stats['fastest_time_str']}")
-    print(f"  - Slowest: {summary_stats['slowest_name']} -> {summary_stats['slowest_time_str']}")
-
-if __name__ == "__main__":
-    main()

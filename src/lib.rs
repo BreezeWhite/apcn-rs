@@ -4,3 +4,6 @@ pub use algo::*;
 
 #[cfg(feature = "cli")]
 pub mod cli;
+
+#[cfg(feature = "wasm")]
+pub mod wasm;

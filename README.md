@@ -3,9 +3,10 @@
 [![Rust](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 ![Crates.io Version](https://img.shields.io/crates/v/apcn?style=flat&color=red&link=https%3A%2F%2Fcrates.io%2Fcrates%2Fapcn)
+[![WebAssembly Support](https://img.shields.io/badge/WebAssembly-supported-blueviolet.svg)](https://webassembly.org/)
 
+An extremely fast, multi-threaded arbitrary-precision mathematical constant calculator and library written in Rust, with full support for compilation to WebAssembly for JavaScript/TypeScript environments. Calculate mathematical constants like $\pi$ to **1 million decimal digits in less than 200 milliseconds**.
 
-An extremely fast, multi-threaded arbitrary-precision mathematical constant calculator and library written in Rust. Calculate mathematical constants like $\pi$ to **1 million decimal digits in less than 200 milliseconds**.
 View the complete benchmarks [here](https://breezewhite.github.io/apcn-rs/)
 
 ---
@@ -138,6 +139,30 @@ fn main() {
 }
 ```
 
+## WebAssembly (WASM) Support
+
+`apcn` is fully compatible with WebAssembly and can be compiled using `wasm-pack` to run directly in web browsers or Node.js.
+
+### NPM Package
+The WASM version of `apcn` is compiled with the portable, pure-Rust `dashu` backend (ensuring zero external C dependencies) and is published to the npm registry:
+
+```bash
+npm install @breezewhite_yo/apcn
+```
+
+For detailed JS/TS integration guides and API examples, refer to the dedicated [WASM README](README_WASM.md).
+
+### Compiling WASM Locally
+If you want to build the WebAssembly package from source (requires `wasm-pack` installed):
+
+```bash
+make build-wasm
+```
+
+This compiles the package to WebAssembly, configures the output under the `@breezewhite_yo` scope, and places the final bundle inside the `pkg/` directory.
+
+---
+
 ## Development
 
 ### Setup & Testing
@@ -175,3 +200,4 @@ You can now open `benchmark_report.html` with any browser.
 | `cli` | Enables the command-line interface executable. |
 | `rug` | Enables the high-performance GMP wrapper backend (mutually exclusive with `dashu`). |
 | `dashu` | Enables the portable pure-Rust backend (mutually exclusive with `rug`). |
+| `wasm` | Enables WebAssembly bindings support (compiled with wasm-bindgen). |

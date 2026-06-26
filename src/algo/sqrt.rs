@@ -12,7 +12,7 @@ pub fn sqrt5(prec: u32) -> BigFloat {
     sqrt(prec, 5)
 }
 
-fn sqrt(prec: u32, v: u32) -> BigFloat {
+pub fn sqrt(prec: u32, v: u32) -> BigFloat {
     // 1 decimal digit ≈ 3.32 bits. Add guard bits to prevent rounding errors.
     let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
 

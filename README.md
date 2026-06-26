@@ -7,7 +7,7 @@
 
 An extremely fast, multi-threaded arbitrary-precision mathematical constant calculator and library written in Rust, with full support for compilation to WebAssembly for JavaScript/TypeScript environments. Calculate mathematical constants like $\pi$ to **1 million decimal digits in less than 200 milliseconds**.
 
-View the complete benchmarks [here](https://breezewhite.github.io/apcn-rs/)
+🔗 **Official Web Portal, WASM Playground & Benchmarks**: [https://breezewhite.github.io/apcn-rs/](https://breezewhite.github.io/apcn-rs/)
 
 ---
 
@@ -190,8 +190,12 @@ cargo bench
 cargo bench --no-default-features --features dashu
 ```
 
-To build the benchmark page, first run the full bench with above command, then execute `python generate_report.py`.
-You can now open `benchmark_report.html` with any browser.
+To build the benchmark page, first run the full bench with above command, then:
+```bash
+python gh_page/generate_report.py
+python -m http.server -d gh_page
+```
+Open the browser and go to [http://localhost:8000/playground.html](http://localhost:8000/playground.html)
 
 ### Feature Flags
 

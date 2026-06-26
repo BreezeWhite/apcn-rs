@@ -64,11 +64,6 @@ jobs:
       - name: Build WASM package
         run: make build-wasm
 
-      - name: Publish to NPM
-        run: make publish-wasm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Package WASM artifact
         run: tar -czvf apcn-wasm.tar.gz pkg
 
@@ -77,6 +72,11 @@ jobs:
         with:
           name: apcn-wasm
           path: apcn-wasm.tar.gz
+
+      - name: Publish to NPM
+        run: make publish-wasm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   build-binaries:
     name: Build Binary (${{ matrix.os }} - ${{ matrix.backend }})

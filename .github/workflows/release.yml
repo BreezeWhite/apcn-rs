@@ -2,12 +2,11 @@ name: Release
 
 on:
   push:
-    branches:
-      - ci
+    tags:
+      - "v*"
 
 permissions:
   contents: write
-  pages: write
   id-token: write
 
 jobs:
@@ -37,6 +36,47 @@ jobs:
         run: |
           # Only publish if the version doesn't exist on crates.io yet
           cargo publish --no-verify || echo "Cargo publish failed (likely version already published), continuing..."
+
+  publish-wasm:
+    name: Publish WASM to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          key: publish-wasm
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Build WASM package
+        run: make build-wasm
+
+      - name: Publish to NPM
+        run: make publish-wasm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Package WASM artifact
+        run: tar -czvf apcn-wasm.tar.gz pkg
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: apcn-wasm
+          path: apcn-wasm.tar.gz
 
   build-binaries:
     name: Build Binary (${{ matrix.os }} - ${{ matrix.backend }})
@@ -142,14 +182,14 @@ jobs:
           Compress-Archive -Path target\release\${{ matrix.binary_name }} -DestinationPath apcn-${{ matrix.backend }}-${{ matrix.platform_name }}.${{ matrix.archive_ext }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: apcn-${{ matrix.backend }}-${{ matrix.platform_name }}
           path: apcn-${{ matrix.backend }}-${{ matrix.platform_name }}.${{ matrix.archive_ext }}
 
   create-release:
     name: Create GitHub Release
-    needs: build-binaries
+    needs: [build-binaries, publish-wasm]
     runs-on: ubuntu-latest
     outputs:
       release_version: ${{ steps.get_version.outputs.VERSION }}
@@ -177,9 +217,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.get_version.outputs.TAG }}
-          name: Release ${{ steps.get_version.outputs.TAG }} (Pre-release Test)
+          name: Release ${{ steps.get_version.outputs.TAG }}
           body: |
-            Pre-release test build of `apcn` version ${{ steps.get_version.outputs.VERSION }}.
+            Build of `apcn` version ${{ steps.get_version.outputs.VERSION }}.
             
             ### Binaries (Rug Backend):
             - **Linux**: `apcn-rug-linux-x86_64.tar.gz` (features: cli, rug)
@@ -191,9 +231,12 @@ jobs:
             - **macOS**: `apcn-dashu-macos-aarch64.tar.gz` (features: cli, dashu)
             - **Windows**: `apcn-dashu-windows-x86_64.zip` (compiled via MSVC target; features: cli, dashu)
             
+            ### WebAssembly (NPM Package):
+            - **WASM Package**: `apcn-wasm.tar.gz` (compiled via wasm-pack; features: wasm, dashu)
+            
             Triggered by commit ${{ github.sha }} on branch `ci`.
           draft: false
-          prerelease: true
+          prerelease: false
           files: |
             artifacts/apcn-rug-linux-x86_64.tar.gz
             artifacts/apcn-dashu-linux-x86_64.tar.gz
@@ -201,3 +244,4 @@ jobs:
             artifacts/apcn-dashu-macos-aarch64.tar.gz
             artifacts/apcn-rug-windows-x86_64.zip
             artifacts/apcn-dashu-windows-x86_64.zip
+            artifacts/apcn-wasm.tar.gz

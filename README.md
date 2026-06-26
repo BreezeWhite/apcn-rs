@@ -44,7 +44,7 @@ View the complete benchmarks [here](https://breezewhite.github.io/apcn-rs/)
 
 #### Pre-built Binary
 
-For Linux/MacOS
+For Linux / MacOS / Windows (GitBash, MSYS2, Cygwin)
 ```bash
 # Default using GMP(rug) backend
 curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/refs/heads/main/install.sh | sh
@@ -53,7 +53,7 @@ curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/refs/heads/main/i
 BACKEND=dashu curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/refs/heads/main/install.sh | sh
 ```
 
-For Windows
+For Windows (Powershell)
 ```shell
 irm https://raw.githubusercontent.com/BreezeWhite/apcn-rs/main/install.ps1 | iex
 

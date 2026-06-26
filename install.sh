@@ -18,6 +18,9 @@ case "$OS" in
   darwin)
     PLATFORM="macos"
     ;;
+  mingw*|msys*|cygwin*)
+    PLATFORM="windows"
+    ;;
   *)
     echo "Error: Unsupported operating system '$OS'." >&2
     exit 1
@@ -45,6 +48,14 @@ if [ "$PLATFORM" = "macos" ]; then
   ARCH_NAME="aarch64"
 fi
 
+if [ "$PLATFORM" = "windows" ]; then
+  BINARY_NAME="apcn.exe"
+  ARCHIVE_EXT="zip"
+else
+  BINARY_NAME="apcn"
+  ARCHIVE_EXT="tar.gz"
+fi
+
 # Fetch the latest release (including pre-releases)
 echo "Fetching latest release version..."
 RELEASE_JSON=$(curl -sS "https://api.github.com/repos/$REPO/releases")
@@ -55,11 +66,15 @@ if [ -z "$TAG" ]; then
   exit 1
 fi
 
-ARCHIVE_NAME="apcn-${BACKEND}-${PLATFORM}-${ARCH_NAME}.tar.gz"
+ARCHIVE_NAME="apcn-${BACKEND}-${PLATFORM}-${ARCH_NAME}.${ARCHIVE_EXT}"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/${TAG}/${ARCHIVE_NAME}"
 
 # Determine writeable install directory
-if [ -w "/usr/local/bin" ]; then
+if [ "$PLATFORM" = "windows" ]; then
+  INSTALL_DIR="$HOME/.local/bin"
+  mkdir -p "$INSTALL_DIR"
+  USE_SUDO="false"
+elif [ -w "/usr/local/bin" ]; then
   INSTALL_DIR="/usr/local/bin"
   USE_SUDO="false"
 elif [ -d "$HOME/.local/bin" ] && [ -w "$HOME/.local/bin" ]; then
@@ -88,40 +103,59 @@ clean_up() {
 trap clean_up EXIT
 
 echo "Downloading apcn $TAG ($BACKEND backend for $PLATFORM-$ARCH_NAME)..."
-curl -L -f -sS "$DOWNLOAD_URL" -o "$TMP_DIR/archive.tar.gz"
+curl -L -f -sS "$DOWNLOAD_URL" -o "$TMP_DIR/archive.${ARCHIVE_EXT}"
 
-if [ ! -s "$TMP_DIR/archive.tar.gz" ]; then
+if [ ! -s "$TMP_DIR/archive.${ARCHIVE_EXT}" ]; then
   echo "Error: Failed to download release asset from $DOWNLOAD_URL" >&2
   exit 1
 fi
 
 echo "Extracting binary..."
-tar -xzf "$TMP_DIR/archive.tar.gz" -C "$TMP_DIR"
+if [ "$PLATFORM" = "windows" ]; then
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q "$TMP_DIR/archive.zip" -d "$TMP_DIR"
+  elif command -v tar >/dev/null 2>&1; then
+    tar -xf "$TMP_DIR/archive.zip" -C "$TMP_DIR"
+  else
+    powershell -Command "Expand-Archive -Path '$TMP_DIR/archive.zip' -DestinationPath '$TMP_DIR' -Force"
+  fi
+else
+  tar -xzf "$TMP_DIR/archive.tar.gz" -C "$TMP_DIR"
+fi
 
-if [ ! -f "$TMP_DIR/apcn" ]; then
-  echo "Error: Binary file 'apcn' not found inside the downloaded archive." >&2
+if [ ! -f "$TMP_DIR/$BINARY_NAME" ]; then
+  echo "Error: Binary file '$BINARY_NAME' not found inside the downloaded archive." >&2
   exit 1
 fi
 
-echo "Installing binary to $INSTALL_DIR/apcn..."
+echo "Installing binary to $INSTALL_DIR/$BINARY_NAME..."
 if [ "$USE_SUDO" = "true" ]; then
-  sudo mv "$TMP_DIR/apcn" "$INSTALL_DIR/apcn"
-  sudo chmod +x "$INSTALL_DIR/apcn"
+  sudo mv "$TMP_DIR/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+  sudo chmod +x "$INSTALL_DIR/$BINARY_NAME"
 else
-  mv "$TMP_DIR/apcn" "$INSTALL_DIR/apcn"
-  chmod +x "$INSTALL_DIR/apcn"
+  mv "$TMP_DIR/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+  chmod +x "$INSTALL_DIR/$BINARY_NAME"
 fi
 
-echo "Successfully installed apcn to $INSTALL_DIR/apcn!"
+echo "Successfully installed apcn to $INSTALL_DIR/$BINARY_NAME!"
 
 # Verify if install path is in PATH variable
-case ":$PATH:" in
-  *:"$INSTALL_DIR":*)
-    echo "You can now run: apcn --help"
-    ;;
-  *)
-    echo "\nWarning: $INSTALL_DIR is not in your current PATH environment variable."
-    echo "To be able to run 'apcn', please add it to your shell configuration profile (e.g. ~/.bashrc or ~/.zshrc):"
-    echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
+PATH_OK="false"
+case ";$PATH;" in
+  *;"$INSTALL_DIR";*)
+    PATH_OK="true"
     ;;
 esac
+case ":$PATH:" in
+  *:"$INSTALL_DIR":*)
+    PATH_OK="true"
+    ;;
+esac
+
+if [ "$PATH_OK" = "true" ]; then
+  echo "You can now run: apcn --help"
+else
+  echo "\nWarning: $INSTALL_DIR is not in your current PATH environment variable."
+  echo "To be able to run 'apcn', please add it to your shell configuration profile (e.g. ~/.bashrc or ~/.zshrc):"
+  echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
+fi

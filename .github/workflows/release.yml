@@ -2,41 +2,14 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - "ci"
 
 permissions:
   contents: write
   id-token: write
 
 jobs:
-  publish-crates:
-    name: Publish to Crates.io
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install system dependencies (Linux)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          key: publish-crates
-
-      - name: Publish to crates.io
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          # Only publish if the version doesn't exist on crates.io yet
-          cargo publish --no-verify || echo "Cargo publish failed (likely version already published), continuing..."
-
   publish-wasm:
     name: Publish WASM to NPM
     runs-on: ubuntu-latest
@@ -64,11 +37,6 @@ jobs:
       - name: Build WASM package
         run: make build-wasm
 
-      - name: Publish to NPM
-        run: make publish-wasm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Package WASM artifact
         run: tar -czvf apcn-wasm.tar.gz pkg
 
@@ -78,170 +46,7 @@ jobs:
           name: apcn-wasm
           path: apcn-wasm.tar.gz
 
-  build-binaries:
-    name: Build Binary (${{ matrix.os }} - ${{ matrix.backend }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        backend: [rug, dashu]
-        include:
-          - os: ubuntu-latest
-            platform_name: linux-x86_64
-            archive_ext: tar.gz
-            binary_name: apcn
-          - os: macos-latest
-            platform_name: macos-aarch64
-            archive_ext: tar.gz
-            binary_name: apcn
-          - os: windows-latest
-            platform_name: windows-x86_64
-            archive_ext: zip
-            binary_name: apcn.exe
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust GNU Toolchain (Windows Rug)
-        if: matrix.os == 'windows-latest' && matrix.backend == 'rug'
-        run: |
-          rustup toolchain install stable-x86_64-pc-windows-gnu
-          rustup default stable-x86_64-pc-windows-gnu
-
-      - name: Install MSYS2 Dependencies (Windows Rug)
-        if: matrix.os == 'windows-latest' && matrix.backend == 'rug'
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: >-
-            base-devel
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-gmp
-            mingw-w64-x86_64-mpfr
-            mingw-w64-x86_64-clang
-            m4
-            make
-            diffutils
-          path-type: inherit
-
-      - name: Install system dependencies (Linux Rug)
-        if: matrix.os == 'ubuntu-latest' && matrix.backend == 'rug'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgmp-dev libmpfr-dev libmpc-dev
-
-      - name: Install system dependencies (macOS Rug)
-        if: matrix.os == 'macos-latest' && matrix.backend == 'rug'
-        run: |
-          brew install gmp mpfr mpc
-
-      - name: Install Rust toolchain (Standard)
-        if: matrix.os != 'windows-latest' || matrix.backend != 'rug'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.os }}-${{ matrix.backend }}
-
-      - name: Build binary (dashu backend)
-        if: matrix.backend == 'dashu'
-        shell: bash
-        run: cargo build --release --no-default-features --features cli,dashu
-
-      - name: Build binary (rug backend - Unix)
-        if: matrix.backend == 'rug' && matrix.os != 'windows-latest'
-        shell: bash
-        run: cargo build --release
-
-      - name: Build binary (rug backend - Windows)
-        if: matrix.backend == 'rug' && matrix.os == 'windows-latest'
-        shell: msys2 {0}
-        run: |
-          echo "=== Debugging: Locating m4.exe ==="
-          find /c/msys64 -name "m4.exe" 2>/dev/null || true
-          find /usr/bin -name "m4.exe" 2>/dev/null || true
-          
-          export PATH="/c/msys64/usr/bin:$PATH"
-          CC=clang cargo build --release
-
-      - name: Package binary (Unix)
-        if: matrix.os != 'windows-latest'
-        shell: bash
-        run: |
-          cd target/release
-          tar -czvf ../../apcn-${{ matrix.backend }}-${{ matrix.platform_name }}.${{ matrix.archive_ext }} ${{ matrix.binary_name }}
-          cd ../..
-
-      - name: Package binary (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          Compress-Archive -Path target\release\${{ matrix.binary_name }} -DestinationPath apcn-${{ matrix.backend }}-${{ matrix.platform_name }}.${{ matrix.archive_ext }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: apcn-${{ matrix.backend }}-${{ matrix.platform_name }}
-          path: apcn-${{ matrix.backend }}-${{ matrix.platform_name }}.${{ matrix.archive_ext }}
-
-  create-release:
-    name: Create GitHub Release
-    needs: [build-binaries, publish-wasm]
-    runs-on: ubuntu-latest
-    outputs:
-      release_version: ${{ steps.get_version.outputs.VERSION }}
-      tag_name: ${{ steps.get_version.outputs.TAG }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-
-      - name: Get version and generate tag
-        id: get_version
-        shell: bash
-        run: |
-          VERSION=$(grep '^version =' Cargo.toml | head -n1 | cut -d'"' -f2)
-          TAG="v${VERSION}-pre.${{ github.run_number }}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.get_version.outputs.TAG }}
-          name: Release ${{ steps.get_version.outputs.TAG }}
-          body: |
-            Build of `apcn` version ${{ steps.get_version.outputs.VERSION }}.
-            
-            ### Binaries (Rug Backend):
-            - **Linux**: `apcn-rug-linux-x86_64.tar.gz` (features: cli, rug)
-            - **macOS**: `apcn-rug-macos-aarch64.tar.gz` (features: cli, rug)
-            - **Windows**: `apcn-rug-windows-x86_64.zip` (compiled via GNU target; features: cli, rug)
-            
-            ### Binaries (Dashu Backend):
-            - **Linux**: `apcn-dashu-linux-x86_64.tar.gz` (features: cli, dashu)
-            - **macOS**: `apcn-dashu-macos-aarch64.tar.gz` (features: cli, dashu)
-            - **Windows**: `apcn-dashu-windows-x86_64.zip` (compiled via MSVC target; features: cli, dashu)
-            
-            ### WebAssembly (NPM Package):
-            - **WASM Package**: `apcn-wasm.tar.gz` (compiled via wasm-pack; features: wasm, dashu)
-            
-            Triggered by commit ${{ github.sha }} on branch `ci`.
-          draft: false
-          prerelease: false
-          files: |
-            artifacts/apcn-rug-linux-x86_64.tar.gz
-            artifacts/apcn-dashu-linux-x86_64.tar.gz
-            artifacts/apcn-rug-macos-aarch64.tar.gz
-            artifacts/apcn-dashu-macos-aarch64.tar.gz
-            artifacts/apcn-rug-windows-x86_64.zip
-            artifacts/apcn-dashu-windows-x86_64.zip
-            artifacts/apcn-wasm.tar.gz
+      - name: Publish to NPM
+        run: make publish-wasm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

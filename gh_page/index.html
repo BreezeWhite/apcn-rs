@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>apcn - Arbitrary Precision Constant Numbers</title>
-    
+
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -19,24 +22,24 @@
             --border: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(255, 255, 255, 0.16);
             --border-accent: rgba(6, 182, 212, 0.3);
-            
+
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
-            
+
             --accent-cyan: #06b6d4;
             --accent-purple: #8b5cf6;
             --accent-emerald: #10b981;
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
-            
+
             --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
             --gradient-emerald: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
             --gradient-dark: linear-gradient(180deg, #080c14 0%, #0e1726 100%);
-            
+
             --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
             --shadow-glow: 0 0 30px rgba(6, 182, 212, 0.1);
-            
+
             --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
@@ -73,7 +76,7 @@
             z-index: 0;
             pointer-events: none;
         }
-        
+
         .ambient-glow-2 {
             position: absolute;
             width: 600px;
@@ -100,7 +103,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1400px;
             width: 100%;
             position: relative;
             z-index: 1;
@@ -119,8 +122,7 @@
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            gap: 2.25rem;
-            text-align: center;
+            gap: 2.5rem;
             position: relative;
             overflow: hidden;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -141,13 +143,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1rem;
+            gap: 1.25rem;
+            width: 100%;
         }
 
         .hero-logo {
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 22px;
             background: var(--gradient-primary);
             display: flex;
             align-items: center;
@@ -157,12 +160,17 @@
         }
 
         .hero-logo i {
-            font-size: 36px;
+            font-size: 40px;
             color: #fff;
         }
 
+        .hero-title {
+            text-align: center;
+            width: 100%;
+        }
+
         .hero-title h1 {
-            font-size: 3.5rem;
+            font-size: 4.2rem;
             font-weight: 800;
             background: var(--gradient-primary);
             -webkit-background-clip: text;
@@ -174,25 +182,165 @@
 
         .hero-subtitle {
             color: var(--text-secondary);
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             font-weight: 500;
-            max-width: 700px;
-            margin: 1rem auto 0;
+            max-width: 1000px;
+            margin: 0.5rem auto 0;
             line-height: 1.4;
         }
 
         .hero-description {
             color: var(--text-secondary);
-            font-size: 0.975rem;
-            max-width: 800px;
+            font-size: 1.15rem;
+            max-width: 900px;
+            margin: 1rem auto 0;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* Intro Performance Metrics */
+        .intro-metrics-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            max-width: 760px;
+            width: 100%;
             margin: 1.5rem auto 0;
-            line-height: 1.7;
-            background: rgba(255, 255, 255, 0.015);
+        }
+
+        @media (max-width: 640px) {
+            .intro-metrics-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        .intro-metric-card {
+            background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 1.5rem 2rem;
-            text-align: left;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
             position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+        }
+
+        .intro-metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .intro-metric-card.pi::before {
+            background: var(--accent-cyan);
+        }
+
+        .intro-metric-card.e::before {
+            background: var(--accent-purple);
+        }
+
+        .intro-metric-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-2px);
+        }
+
+        .intro-metric-card.pi:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
+        }
+
+        .intro-metric-card.e:hover {
+            border-color: var(--accent-purple);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+        }
+
+        .intro-metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            transition: transform 0.3s ease;
+        }
+
+        .intro-metric-card:hover .intro-metric-icon {
+            transform: scale(1.08);
+        }
+
+        .intro-metric-card.pi .intro-metric-icon {
+            background: rgba(6, 182, 212, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .intro-metric-card.e .intro-metric-icon {
+            background: rgba(139, 92, 246, 0.12);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .intro-metric-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .intro-metric-num {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.1;
+            font-family: var(--font-mono);
+            letter-spacing: -0.5px;
+        }
+
+        .intro-metric-card.pi .intro-metric-num {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        .intro-metric-card.e .intro-metric-num {
+            color: var(--accent-purple);
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .intro-metric-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .intro-metric-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .hero-body-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2.25rem;
+            width: 100%;
+            text-align: left;
+        }
+
+        .hero-col-left,
+        .hero-col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 2.25rem;
+            width: 100%;
         }
 
         /* Console Console Box */
@@ -200,16 +348,19 @@
             background: #0b0f19;
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1.75rem;
             text-align: left;
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            height: 100%;
         }
 
         .console-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
         }
 
         .console-tabs {
@@ -223,8 +374,8 @@
             color: var(--text-secondary);
             font-family: var(--font-main);
             font-weight: 600;
-            font-size: 0.8rem;
-            padding: 0.35rem 0.75rem;
+            font-size: 0.95rem;
+            padding: 0.4rem 0.9rem;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -241,9 +392,9 @@
             justify-content: space-between;
             align-items: center;
             font-family: var(--font-mono);
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             background: rgba(0, 0, 0, 0.3);
-            padding: 0.85rem 1.25rem;
+            padding: 1rem 1.5rem;
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.03);
             overflow-x: auto;
@@ -271,14 +422,27 @@
             color: var(--text-primary);
         }
 
+        .wasm-sample-box {
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            text-align: left;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
         /* Navigation Grid */
         .nav-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
+            width: 100%;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
             .nav-grid {
                 grid-template-columns: 1fr;
             }
@@ -294,7 +458,7 @@
             color: inherit;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.75rem;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
@@ -320,7 +484,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
             transition: all 0.3s ease;
         }
 
@@ -341,7 +505,7 @@
         }
 
         .nav-card h3 {
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-primary);
             display: flex;
@@ -350,7 +514,7 @@
         }
 
         .nav-card h3 i {
-            font-size: 16px;
+            font-size: 18px;
             color: var(--text-muted);
             transition: transform 0.2s ease;
         }
@@ -362,7 +526,7 @@
 
         .nav-card p {
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             line-height: 1.6;
         }
 
@@ -372,18 +536,18 @@
             backdrop-filter: blur(16px);
             border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 2rem;
+            padding: 2.25rem;
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            gap: 1.25rem;
+            gap: 1.5rem;
         }
 
         .downloads-title {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1.15rem;
+            font-size: 1.3rem;
             font-weight: 700;
         }
 
@@ -393,22 +557,22 @@
 
         .downloads-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
         }
 
         .download-platform-card {
             background: rgba(255, 255, 255, 0.015);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.25rem;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 1rem;
         }
 
         .download-platform-label {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
             color: var(--text-muted);
@@ -418,13 +582,13 @@
         }
 
         .download-platform-label i {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
         }
 
         .download-btn-group {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.75rem;
         }
 
         .download-btn {
@@ -432,8 +596,8 @@
             border: 1px solid var(--border);
             color: var(--text-secondary);
             text-decoration: none;
-            padding: 0.4rem 0.6rem;
-            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
             font-weight: 600;
             border-radius: 8px;
             flex: 1;
@@ -460,7 +624,7 @@
         footer {
             text-align: center;
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             margin-top: 1rem;
         }
 
@@ -474,6 +638,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="ambient-glow"></div>
@@ -481,7 +646,7 @@
     <div class="ambient-glow-3"></div>
 
     <div class="container">
-        
+
         <!-- Hero section -->
         <main class="hero-card">
             <div class="hero-header">
@@ -490,57 +655,118 @@
                 </div>
                 <div class="hero-title">
                     <h1>apcn</h1>
-                    <p class="hero-subtitle">High-Performance Arbitrary Precision Constant Numbers Calculation in Rust</p>
-                    <p class="hero-description">
-                        <strong style="color: var(--text-primary);">apcn</strong> is a high-speed mathematical constant calculator written in Rust. It utilizes parallel computing via <span style="color: var(--accent-cyan); font-weight: 600;">Rayon</span> and supports dual backends—highly optimized GNU GMP/MPFR bindings via <span style="color: var(--accent-purple); font-weight: 600;">Rug</span>, and a zero-dependency pure-Rust fallback via <span style="color: var(--accent-emerald); font-weight: 600;">Dashu</span>—delivering arbitrary-precision calculation speedups both locally and in the browser.
+                    <p class="hero-subtitle">High-Performance Arbitrary Precision Constant Numbers Calculation in Rust
                     </p>
-                </div>
-            </div>
-
-            <!-- Copyable Installation Command Console -->
-            <div class="console-box">
-                <div class="console-header">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div class="terminal-dots" style="display: flex; gap: 6px;">
-                            <span style="width: 10px; height: 10px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
-                            <span style="width: 10px; height: 10px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
-                            <span style="width: 10px; height: 10px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+                    <p class="hero-description">
+                        An extremely fast, multi-threaded arbitrary-precision mathematical constant calculator written
+                        in Rust.
+                    </p>
+                    <div class="intro-metrics-container">
+                        <!-- Pi Card -->
+                        <div class="intro-metric-card pi">
+                            <div class="intro-metric-icon">&pi;</div>
+                            <div class="intro-metric-content">
+                                <span class="intro-metric-label">Pi (&pi;) Speed</span>
+                                <span class="intro-metric-num">189 ms</span>
+                                <span class="intro-metric-desc">1M Digits computation time</span>
+                            </div>
                         </div>
-                        <span class="setting-label" style="font-weight: 700;">Install CLI Utility</span>
+
+                        <!-- E Card -->
+                        <div class="intro-metric-card e">
+                            <div class="intro-metric-icon">e</div>
+                            <div class="intro-metric-content">
+                                <span class="intro-metric-label">Euler's Number (e) Speed</span>
+                                <span class="intro-metric-num">68 ms</span>
+                                <span class="intro-metric-desc">1M Digits computation time</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="console-tabs">
-                        <button class="console-tab active" id="tab-unix" onclick="setTab('unix')">Linux / macOS</button>
-                        <button class="console-tab" id="tab-windows" onclick="setTab('windows')">Windows</button>
-                    </div>
-                </div>
-                <div class="console-content">
-                    <code id="install-cmd">curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/main/install.sh | sh</code>
-                    <button class="copy-btn" onclick="copyCommand()" title="Copy command">
-                        <i data-lucide="copy" id="copy-icon" style="width: 16px; height: 16px;"></i>
-                    </button>
-                </div>
-                <div class="console-footer" id="console-note" style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem;">
-                    <i data-lucide="info" style="width: 12px; height: 12px; color: var(--accent-cyan);"></i>
-                    <span id="note-text">Also supports Windows under Git Bash, MSYS2, or Cygwin.</span>
                 </div>
             </div>
 
-            <!-- Main Feature Navigation -->
-            <div class="nav-grid">
-                <a href="report.html" class="nav-card">
-                    <div class="nav-card-icon cyan">
-                        <i data-lucide="bar-chart-2"></i>
+            <div class="hero-body-grid">
+                <!-- Left Column -->
+                <div class="hero-col-left">
+                    <!-- Copyable Installation Command Console -->
+                    <div class="console-box">
+                        <div class="console-header">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="terminal-dots" style="display: flex; gap: 6px;">
+                                    <span
+                                        style="width: 10px; height: 10px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
+                                    <span
+                                        style="width: 10px; height: 10px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
+                                    <span
+                                        style="width: 10px; height: 10px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+                                </div>
+                                <span class="setting-label" style="font-weight: 700;">Install CLI Utility</span>
+                            </div>
+                            <div class="console-tabs">
+                                <button class="console-tab active" id="tab-unix" onclick="setTab('unix')">Linux /
+                                    macOS</button>
+                                <button class="console-tab" id="tab-windows"
+                                    onclick="setTab('windows')">Windows</button>
+                            </div>
+                        </div>
+                        <div class="console-content">
+                            <code
+                                id="install-cmd">curl -sS https://raw.githubusercontent.com/BreezeWhite/apcn-rs/main/install.sh | sh</code>
+                            <button class="copy-btn" onclick="copyCommand()" title="Copy command">
+                                <i data-lucide="copy" id="copy-icon" style="width: 18px; height: 18px;"></i>
+                            </button>
+                        </div>
+                        <div class="console-footer" id="console-note"
+                            style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem;">
+                            <i data-lucide="info" style="width: 12px; height: 12px; color: var(--accent-cyan);"></i>
+                            <span id="note-text">Also supports Windows under Git Bash, MSYS2, or Cygwin.</span>
+                        </div>
                     </div>
-                    <h3>Interactive Benchmarks <i data-lucide="arrow-right"></i></h3>
-                    <p>Explore relative performance speedups, scaling matrices, and statistical bounds across different size parameters, backends, and parallel threads.</p>
-                </a>
-                <a href="playground.html" class="nav-card">
-                    <div class="nav-card-icon purple">
-                        <i data-lucide="terminal"></i>
+                </div>
+
+                <!-- Right Column -->
+                <div class="hero-col-right">
+                    <!-- Main Feature Navigation -->
+                    <div class="nav-grid">
+                        <a href="report.html" class="nav-card">
+                            <div class="nav-card-icon cyan">
+                                <i data-lucide="bar-chart-2"></i>
+                            </div>
+                            <h3>Interactive Benchmarks <i data-lucide="arrow-right"></i></h3>
+                            <p>Compare calculation performance and scaling speedups across different backends and thread
+                                counts.</p>
+                        </a>
+                        <a href="playground.html" class="nav-card">
+                            <div class="nav-card-icon purple">
+                                <i data-lucide="terminal"></i>
+                            </div>
+                            <h3>WASM Playground <i data-lucide="arrow-right"></i></h3>
+                            <p>Calculate high-precision mathematical constants directly inside your browser using
+                                WebAssembly.</p>
+                        </a>
                     </div>
-                    <h3>WASM Playground <i data-lucide="arrow-right"></i></h3>
-                    <p>Run high-precision constant computations directly inside your browser. Powered by WebAssembly compiled from the Rust codebase.</p>
-                </a>
+
+                    <!-- WASM Sample Integration Card -->
+                    <div class="wasm-sample-box">
+                        <div class="console-header" style="margin-bottom: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i data-lucide="code"
+                                    style="color: var(--accent-purple); width: 18px; height: 18px;"></i>
+                                <span class="setting-label" style="font-weight: 700;">WASM Integration Example</span>
+                            </div>
+                        </div>
+                        <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Integrate
+                            APCN calculations directly into your web applications in a single line.</p>
+                        <div class="console-content" style="background: rgba(0, 0, 0, 0.4); padding: 1.25rem;">
+                            <pre style="margin: 0; overflow-x: auto; width: 100%;"><code style="color: #a7f3d0; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; display: block; white-space: pre;">// Import and initialize the WASM module
+import init, { compute_pi } from "https://esm.sh/@breezewhite_yo/apcn";
+
+await init();
+const pi = compute_pi(1000); // 1,000 digits!
+console.log(pi);</code></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -548,20 +774,24 @@
         <section class="downloads-section">
             <div class="downloads-title">
                 <i data-lucide="download"></i>
-                <h2>Release Download Portal <span id="portal-tag" style="color: var(--text-muted); font-size: 0.8rem; font-weight: normal; margin-left: 0.5rem;">(loading...)</span></h2>
+                <h2>Release Download Portal <span id="portal-tag"
+                        style="color: var(--text-muted); font-size: 0.8rem; font-weight: normal; margin-left: 0.5rem;">(loading...)</span>
+                </h2>
             </div>
-            
+
             <div class="downloads-grid" id="downloads-container">
                 <!-- Fallback static link until dynamic tags are loaded -->
-                <p style="color: var(--text-secondary); font-size: 0.9rem;" id="downloads-loading-text">
-                    Contacting GitHub API to pull direct binary download assets...
+                <p style="color: var(--text-secondary); font-size: 1.05rem;" id="downloads-loading-text">
+                    Fetching precompiled binary assets directly from the latest GitHub releases.
                 </p>
             </div>
         </section>
 
         <!-- Footer -->
         <footer>
-            <p>apcn-rs is licensed under the <a href="https://github.com/BreezeWhite/apcn-rs/blob/main/LICENSE" target="_blank">MIT License</a>. View the source on <a href="https://github.com/BreezeWhite/apcn-rs" target="_blank">GitHub</a>.</p>
+            <p>apcn-rs is licensed under the <a href="https://github.com/BreezeWhite/apcn-rs/blob/main/LICENSE"
+                    target="_blank">MIT License</a>. View the source on <a href="https://github.com/BreezeWhite/apcn-rs"
+                    target="_blank">GitHub</a>.</p>
         </footer>
 
     </div>
@@ -582,7 +812,7 @@
             document.getElementById("tab-unix").classList.toggle("active", tab === "unix");
             document.getElementById("tab-windows").classList.toggle("active", tab === "windows");
             document.getElementById("install-cmd").innerText = commands[tab];
-            
+
             const noteText = document.getElementById("note-text");
             if (tab === "unix") {
                 noteText.innerText = "Also supports Windows under Git Bash, MSYS2, or Cygwin.";
@@ -599,7 +829,7 @@
                 copyIcon.setAttribute("data-lucide", "check");
                 copyIcon.style.color = "var(--accent-emerald)";
                 lucide.createIcons();
-                
+
                 setTimeout(() => {
                     copyIcon.setAttribute("data-lucide", "copy");
                     copyIcon.style.color = "";
@@ -614,17 +844,17 @@
         async function fetchDownloads() {
             const container = document.getElementById("downloads-container");
             const portalTag = document.getElementById("portal-tag");
-            
+
             try {
                 const response = await fetch("https://api.github.com/repos/BreezeWhite/apcn-rs/releases");
                 if (!response.ok) throw new Error("Failed to fetch releases metadata.");
                 const releases = await response.json();
-                
+
                 if (releases.length === 0) throw new Error("No releases found.");
-                
+
                 const latest = releases[0];
                 const tag = latest.tag_name;
-                
+
                 portalTag.innerText = `(${tag})`;
                 container.innerHTML = `
                     <div class="download-platform-card">
@@ -660,12 +890,12 @@
                 lucide.createIcons();
             } catch (err) {
                 console.error("Error setting up downloads portal:", err);
-                
+
                 // Fallback links to GitHub releases page
                 portalTag.innerText = "";
                 container.innerHTML = `
-                    <p style="color: var(--text-secondary); grid-column: 1 / -1; font-size: 0.9rem;">
-                        Failed to fetch release assets dynamically. Please download directly from the 
+                    <p style="color: var(--text-secondary); grid-column: 1 / -1; font-size: 1.05rem;">
+                        Failed to fetch release assets dynamically. Please visit the 
                         <a href="https://github.com/BreezeWhite/apcn-rs/releases" target="_blank" style="color: var(--accent-cyan); text-decoration: underline;">GitHub Releases Page</a>.
                     </p>
                 `;
@@ -675,4 +905,5 @@
         window.addEventListener('DOMContentLoaded', fetchDownloads);
     </script>
 </body>
+
 </html>

@@ -50,4 +50,6 @@ pub enum Actions {
     Sqrt5,
     /// Golden ratio.
     Phi,
+    /// Euler-Mascheroni constant.
+    Gamma,
 }

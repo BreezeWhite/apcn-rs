@@ -1,11 +1,11 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 
 mod e_compare;
+mod gamma_compare;
 mod ln_compare;
 mod phi_compare;
 mod pi_compare;
 mod sqrt_compare;
-mod gamma_compare;
 
 criterion_group!(
     name = benches;

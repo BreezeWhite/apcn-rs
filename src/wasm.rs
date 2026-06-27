@@ -48,4 +48,3 @@ pub fn compute_phi(prec: u32) -> String {
 pub fn compute_gamma(prec: u32) -> String {
     process_string(gamma::compute(prec).to_fixed_string(), prec)
 }
-

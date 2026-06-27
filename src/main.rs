@@ -1,33 +1,9 @@
-use std::fs::File;
-use std::io::{Result, Write};
 use std::time::Instant;
 
 use apcn::backend::BigFloat;
 use apcn::cli::{Actions, Cli};
-use apcn::log::generic_log::{compute_ln, compute_ln_parallel};
 use apcn::{e, gamma, log, phi, pi, sqrt};
 use clap::Parser;
-
-fn gen_test_data() -> Result<()> {
-    let prec = 2_000_000;
-    let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
-
-    let x = 5;
-    let start = Instant::now();
-    let ss = BigFloat::with_val(binary_prec, x).ln().to_fixed_string();
-    let elapsed = start.elapsed();
-    println!("Elapsed: {elapsed:#?}");
-
-    let out_path = format!("./tests/data/ln{x}_million.txt");
-    let mut f = File::create(out_path)?;
-    f.write_all(&ss.as_bytes()[..prec + 2])?;
-    Ok(())
-}
-
-fn _main() -> Result<()> {
-    let _ = gen_test_data()?;
-    Ok(())
-}
 
 #[cfg(feature = "rug")]
 const BACKEND: &str = "rug";
@@ -146,18 +122,18 @@ fn main_test() {
     println!("Format duration: {dura:#?}");
 
     // -----
-    let start = Instant::now();
+    // let start = Instant::now();
     // let val = compute_ln(x as f64, prec);
     // let val = compute_phi(binary_prec);
     // let val = 2f64.ln();
-    let val = rug::Float::with_val(binary_prec, rug::float::Constant::Euler);
-    let dura = start.elapsed();
-    println!("{val}");
-    // println!("{}", val.to_fixed_string());
-    println!("Compute generic duration: {dura:#?}");
+    // let val = rug::Float::with_val(binary_prec, rug::float::Constant::Euler);
+    // let dura = start.elapsed();
+    // println!("{val}");
+    // // println!("{}", val.to_fixed_string());
+    // println!("Compute generic duration: {dura:#?}");
 
-    let start = Instant::now();
-    let _ = val.to_string();
-    let dura = start.elapsed();
-    println!("Format duration: {dura:#?}");
+    // let start = Instant::now();
+    // let _ = val.to_string();
+    // let dura = start.elapsed();
+    // println!("Format duration: {dura:#?}");
 }

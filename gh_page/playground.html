@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>apcn - WebAssembly Constant Playground</title>
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Interactive WebAssembly Constant Playground for apcn. Calculate high-precision mathematical constants like Pi, e, Golden Ratio (phi), and square roots directly in your browser.">
-    <meta name="keywords" content="apcn, webassembly, wasm, math playground, calculate pi, euler's number, phi, square root of 2, high precision calculator, online math calculator">
+    <meta name="description"
+        content="Interactive WebAssembly Constant Playground for apcn. Calculate high-precision mathematical constants like Pi, e, Golden Ratio (phi), and square roots directly in your browser.">
+    <meta name="keywords"
+        content="apcn, webassembly, wasm, math playground, calculate pi, euler's number, phi, square root of 2, high precision calculator, online math calculator">
     <meta name="robots" content="index, follow">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="apcn - WebAssembly Constant Playground">
-    <meta property="og:description" content="Compute high-precision mathematical constants (Pi, e, Golden Ratio, logarithms, square roots) natively in your browser using compiled WebAssembly.">
-    
+    <meta property="og:description"
+        content="Compute high-precision mathematical constants (Pi, e, Golden Ratio, logarithms, square roots) natively in your browser using compiled WebAssembly.">
+
     <!-- Twitter -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="apcn - WebAssembly Constant Playground">
-    <meta name="twitter:description" content="Calculate mathematical constants directly in your browser with high precision WebAssembly.">
-    
+    <meta name="twitter:description"
+        content="Calculate mathematical constants directly in your browser with high precision WebAssembly.">
+
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -34,23 +41,23 @@
             --border: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(255, 255, 255, 0.16);
             --border-accent: rgba(6, 182, 212, 0.3);
-            
+
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
-            
+
             --accent-cyan: #06b6d4;
             --accent-purple: #8b5cf6;
             --accent-emerald: #10b981;
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
-            
+
             --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
             --gradient-emerald: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
             --gradient-dark: linear-gradient(180deg, #080c14 0%, #0e1726 100%);
-            
+
             --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-            
+
             --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
@@ -84,7 +91,7 @@
             z-index: 0;
             pointer-events: none;
         }
-        
+
         .ambient-glow-2 {
             position: absolute;
             width: 500px;
@@ -196,7 +203,8 @@
             color: var(--text-muted);
         }
 
-        .select-input, .text-input {
+        .select-input,
+        .text-input {
             background: #0f172a;
             border: 1px solid var(--border);
             color: var(--text-primary);
@@ -209,7 +217,8 @@
             transition: all 0.2s ease;
         }
 
-        .select-input:focus, .text-input:focus {
+        .select-input:focus,
+        .text-input:focus {
             border-color: var(--accent-cyan);
             box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
         }
@@ -435,8 +444,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .loader-text {
@@ -448,23 +462,33 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
+
+            0%,
+            100% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="ambient-glow"></div>
     <div class="ambient-glow-2"></div>
 
     <div class="container">
-        
+
         <!-- Header -->
         <header>
             <div class="header-title-section">
                 <!-- Navigation Home Button -->
-                <a href="index.html" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; margin-right: 0.5rem; transition: all 0.2s ease; cursor: pointer;" title="Back to Home">
+                <a href="index.html"
+                    style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; margin-right: 0.5rem; transition: all 0.2s ease; cursor: pointer;"
+                    title="Back to Home">
                     <i data-lucide="home" style="width: 20px; height: 20px;"></i>
                 </a>
                 <div class="header-logo">
@@ -479,7 +503,7 @@
 
         <!-- Main Workspace -->
         <div class="playground-grid">
-            
+
             <!-- Left Config Panel -->
             <div class="sidebar-card">
                 <div class="section-title">
@@ -502,12 +526,13 @@
 
                 <div class="setting-group" id="input-x-group" style="display: none;">
                     <label class="setting-label" for="value-x-input">Value (x)</label>
-                    <input class="text-input" type="number" id="value-x-input" value="2" min="2" step="1"/>
+                    <input class="text-input" type="number" id="value-x-input" value="2" min="2" step="1" />
                 </div>
 
                 <div class="setting-group">
                     <label class="setting-label" for="precision-input">Digits Precision</label>
-                    <input class="text-input" type="number" id="precision-input" value="1000" min="5" max="1000000" step="100"/>
+                    <input class="text-input" type="number" id="precision-input" value="1000" min="5" max="1000000"
+                        step="100" />
                 </div>
 
                 <div class="setting-group">
@@ -545,7 +570,8 @@
                         <div class="spinner"></div>
                         <div class="loader-text">APCN Computing...</div>
                     </div>
-                    <textarea class="textarea-viewport" id="output-viewport" readonly placeholder="WASM package is initializing. Please wait..."></textarea>
+                    <textarea class="textarea-viewport" id="output-viewport" readonly
+                        placeholder="WASM package is initializing. Please wait..."></textarea>
                 </div>
             </div>
 
@@ -555,7 +581,15 @@
 
     <!-- WASM Script Execution -->
     <script type="module">
-        import init, { compute_pi, compute_e, compute_sqrt2, sqrt, ln, compute_ln2, compute_phi, compute_gamma } from "https://cdn.jsdelivr.net/npm/@breezewhite_yo/apcn/apcn.js";
+        let apcn;
+        try {
+            apcn = await import("./pkg/apcn.js");
+        } catch (e) {
+            console.warn("Local WASM package not found or blocked. Falling back to CDN...", e);
+            apcn = await import("https://cdn.jsdelivr.net/npm/@breezewhite_yo/apcn/apcn.js");
+        }
+
+        const { default: init, compute_pi, compute_e, compute_sqrt2, sqrt, ln, compute_ln2, compute_phi, compute_gamma } = apcn;
 
         const modeSelect = document.getElementById("mode-select");
         const valueXInput = document.getElementById("value-x-input");
@@ -633,7 +667,7 @@
 
                         // Display output results
                         outputViewport.value = resultString;
-                        
+
                         // Display stats
                         elapsedBadge.innerText = `Time: ${duration.toFixed(2)} ms`;
                         elapsedBadge.style.display = "inline-block";
@@ -650,7 +684,7 @@
             };
 
             computeBtn.addEventListener("click", runComputation);
-            
+
             // Allow Enter key triggers inside input boxes
             precisionInput.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
@@ -679,7 +713,7 @@
             // Highlight active button
             const buttons = document.querySelectorAll(".preset-btn");
             buttons.forEach(btn => {
-                if (btn.innerText.includes(value >= 1000 ? `${value/1000}K` : value) || btn.innerText === String(value)) {
+                if (btn.innerText.includes(value >= 1000 ? `${value / 1000}K` : value) || btn.innerText === String(value)) {
                     btn.classList.add("active");
                 } else {
                     btn.classList.remove("active");
@@ -691,14 +725,14 @@
             const viewport = document.getElementById("output-viewport");
             const btnIcon = document.getElementById("copy-btn-icon");
             const btn = document.getElementById("copy-btn");
-            
+
             try {
                 await navigator.clipboard.writeText(viewport.value);
                 btnIcon.setAttribute("data-lucide", "check");
                 btn.style.color = "var(--accent-emerald)";
                 btn.style.borderColor = "var(--accent-emerald)";
                 lucide.createIcons();
-                
+
                 setTimeout(() => {
                     btnIcon.setAttribute("data-lucide", "copy");
                     btn.style.color = "";
@@ -711,4 +745,5 @@
         }
     </script>
 </body>
+
 </html>

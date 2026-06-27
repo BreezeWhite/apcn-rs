@@ -3,8 +3,13 @@ build-dashu:
 
 # Could only compile with dashu as backend for wasm.
 build-wasm:
-	@wasm-pack build --scope breezewhite_yo --target web --no-default-features --features wasm,dashu
+	@wasm-pack build \
+		--scope breezewhite_yo \
+		--target web \
+		--no-default-features \
+		--features wasm,dashu
 	@cp README_WASM.md pkg/README.md
+	@cp -r pkg gh_page/
 
 publish-wasm:
 	@wasm-pack publish --access=public

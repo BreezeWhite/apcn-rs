@@ -43,3 +43,9 @@ pub fn compute_ln2(prec: u32) -> String {
 pub fn compute_phi(prec: u32) -> String {
     process_string(phi::compute_phi(prec).to_fixed_string(), prec)
 }
+
+#[wasm_bindgen]
+pub fn compute_gamma(prec: u32) -> String {
+    process_string(gamma::compute(prec).to_fixed_string(), prec)
+}
+

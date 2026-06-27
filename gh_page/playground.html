@@ -492,6 +492,7 @@
                         <option value="pi">&pi; (Pi)</option>
                         <option value="e">e (Euler's Number)</option>
                         <option value="phi">&phi; (Golden Ratio)</option>
+                        <option value="gamma">&gamma; (Euler-Mascheroni Constant)</option>
                         <option value="ln2">ln(2) (Natural Log of 2)</option>
                         <option value="ln">ln(x) (Natural Log)</option>
                         <option value="sqrt2">sqrt(2) (Square Root of 2)</option>
@@ -554,7 +555,7 @@
 
     <!-- WASM Script Execution -->
     <script type="module">
-        import init, { compute_pi, compute_e, compute_sqrt2, sqrt, ln, compute_ln2, compute_phi } from "https://cdn.jsdelivr.net/npm/@breezewhite_yo/apcn/apcn.js";
+        import init, { compute_pi, compute_e, compute_sqrt2, sqrt, ln, compute_ln2, compute_phi, compute_gamma } from "https://cdn.jsdelivr.net/npm/@breezewhite_yo/apcn/apcn.js";
 
         const modeSelect = document.getElementById("mode-select");
         const valueXInput = document.getElementById("value-x-input");
@@ -614,6 +615,9 @@
                                 break;
                             case "phi":
                                 resultString = compute_phi(digits);
+                                break;
+                            case "gamma":
+                                resultString = compute_gamma(digits);
                                 break;
                             case "ln2":
                                 resultString = compute_ln2(digits);

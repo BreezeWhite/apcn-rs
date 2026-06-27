@@ -5,6 +5,7 @@ mod ln_compare;
 mod phi_compare;
 mod pi_compare;
 mod sqrt_compare;
+mod gamma_compare;
 
 criterion_group!(
     name = benches;
@@ -15,6 +16,7 @@ criterion_group!(
         pi_compare::bench,
         sqrt_compare::bench,
         phi_compare::bench,
+        gamma_compare::bench,
 );
 
 criterion_main!(benches);

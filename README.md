@@ -35,6 +35,7 @@ An extremely fast, multi-threaded arbitrary-precision mathematical constant calc
 | **Square Root 3** | $\sqrt{3}$ | `sqrt3` | Newton-Raphson Method | No |
 | **Square Root 5** | $\sqrt{5}$ | `sqrt5` | Newton-Raphson Method | No |
 | **Golden Ratio Phi** | $\phi$ | `phi` | Direct Calculation | Yes |
+| **Euler-Mascheroni Constant** | $\gamma$ | `gamma` | Brent-McMillan Algorithm | Yes |
 
 ---
 

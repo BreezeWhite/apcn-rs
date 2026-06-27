@@ -912,7 +912,7 @@
             const sidebarContainer = document.getElementById("group-list-container");
             sidebarContainer.innerHTML = "";
 
-            const orderPriority = { "pi": 1, "euler": 2, "phi": 3 };
+            const orderPriority = { "pi": 1, "euler": 2, "phi": 3, "gamma": 4 };
             const sortedGroups = Object.keys(BENCHMARK_DATA).sort((a, b) => {
                 const prioA = orderPriority[a] || 999;
                 const prioB = orderPriority[b] || 999;

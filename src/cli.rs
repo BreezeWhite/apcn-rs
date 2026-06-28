@@ -52,4 +52,16 @@ pub enum Actions {
     Phi,
     /// Euler-Mascheroni constant.
     Gamma,
+    /// Exponential function. Use generic exp algorithm to calculate.
+    #[command(arg_required_else_help = true)]
+    Exp {
+        /// The exponent to calculate e^x. Can be a decimal number.
+        x: f64,
+    },
+    /// Natural log function. Use generic log algorithm to calculate.
+    #[command(arg_required_else_help = true)]
+    Ln {
+        /// The number to calculate ln(x). Can be a decimal number.
+        x: f64,
+    },
 }

@@ -200,6 +200,12 @@ impl BigFloat {
         FromPrec::from_prec(prec, val)
     }
 
+    pub fn to_int(&self) -> BigInt {
+        let (int, _) = self.num.clone().to_integer_round(Round::Nearest).unwrap();
+        BigInt { num: int }
+    }
+
+
     pub fn to_fixed_string(&self) -> String {
         let s = self.num.to_string_radix_round(10, None, Round::Nearest);
         if !s.contains('e') && !s.contains('E') {

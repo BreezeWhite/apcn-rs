@@ -2,22 +2,18 @@ use crate::backend::{BigFloat, BigInt};
 use crate::algo::bs_utils::{
     BinarySplitGeneric, binary_splitting_generic_parallel, sub_binary_splitting_generic,
 };
-use crate::algo::log::generic_log;
 
 struct GammaBS {
     n2: BigInt,
 }
 
 impl BinarySplitGeneric for GammaBS {
-    type Value = (BigInt, BigInt, BigInt, BigInt, BigInt, BigInt); // P, Q, V, T, W, U
+    type Value = (BigInt, BigInt, BigInt, BigInt, BigInt); // P, V, T, W, U
 
     fn compute_base(&self, a: u64) -> Self::Value {
-        let k = BigInt::from(a + 1);
-        let k2 = k.clone() * k;
         let k_val = BigInt::from(a + 1);
         (
             self.n2.clone(),
-            k2,
             k_val,
             self.n2.clone(),
             BigInt::from(1),
@@ -26,14 +22,16 @@ impl BinarySplitGeneric for GammaBS {
     }
 
     fn merge(&self, left: Self::Value, right: Self::Value) -> Self::Value {
-        let (pl, ql, vl, tl, wl, ul) = left;
-        let (pr, qr, vr, tr, wr, ur) = right;
+        let (pl, vl, tl, wl, ul) = left;
+        let (pr, vr, tr, wr, ur) = right;
+
+        // Since Q = V^2, we only need to compute Q_R for the merge step.
+        // We use clones and MulAssign for compatibility with both backends.
+        let mut qr = vr.clone();
+        qr *= &vr;
 
         let mut p = pl.clone();
         p *= &pr;
-
-        let mut q = ql.clone();
-        q *= &qr;
 
         let mut v = vl.clone();
         v *= &vr;
@@ -41,34 +39,34 @@ impl BinarySplitGeneric for GammaBS {
         // T = T_L * Q_R + P_L * T_R
         let mut t = tl;
         t *= &qr;
-        let mut p_tr = pl.clone();
-        p_tr *= &tr;
-        t += p_tr;
+        let mut p_l_t_r = pl.clone();
+        p_l_t_r *= &tr;
+        t += &p_l_t_r;
 
         // W = W_L * V_R + W_R * V_L
-        let mut w = wl.clone();
-        w *= &vr;
-        let mut w_vl = wr;
-        w_vl *= &vl;
-        w += w_vl;
+        let mut w_l_v_r = wl.clone();
+        w_l_v_r *= &vr;
+        let mut w_r_v_l = wr;
+        w_r_v_l *= &vl;
+        let w = w_l_v_r.clone() + w_r_v_l;
 
-        // U = U_L * V_R * Q_R + P_L * U_R * V_L + W_L * P_L * T_R * V_R
-        let mut term1 = ul;
-        term1 *= &vr;
-        term1 *= &qr;
+        // U = (U_L * Q_R + W_L * (P_L * T_R)) * V_R + (P_L * U_R) * V_L
+        let mut u_l_q_r = ul;
+        u_l_q_r *= &qr;
 
-        let mut term2 = pl.clone();
+        let mut wl_p_l_t_r = wl;
+        wl_p_l_t_r *= &p_l_t_r;
+
+        let mut term1_3 = u_l_q_r + wl_p_l_t_r;
+        term1_3 *= &vr;
+
+        let mut term2 = pl;
         term2 *= &ur;
         term2 *= &vl;
 
-        let mut term3 = wl;
-        term3 *= &pl;
-        term3 *= &tr;
-        term3 *= &vr;
+        let u = term1_3 + term2;
 
-        let u = term1 + term2 + term3;
-
-        (p, q, v, t, w, u)
+        (p, v, t, w, u)
     }
 }
 
@@ -128,16 +126,20 @@ fn calculate_euler_gamma(prec: u32, parallel: bool) -> BigFloat {
     let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 64;
 
     let n = ((prec as f64 + 15.0) / 1.7371779276).ceil() as u64 + 5;
-    let k = (4.9711 * n as f64).ceil() as u64 + 20;
+    let k = (4.32 * n as f64).ceil() as u64 + 5;
 
     let n2 = BigInt::from(n * n);
     let bessel_ctx = GammaBS { n2 };
 
-    let (_p, q, v, t, _wl, ul) = if parallel {
+    let (_p, v, t, _wl, ul) = if parallel {
         binary_splitting_generic_parallel(&bessel_ctx, k - 1)
     } else {
         sub_binary_splitting_generic(0, k - 1, &bessel_ctx)
     };
+
+    // Recover Q = V^2 at the top level
+    let mut q = v.clone();
+    q *= &v;
 
     let thirty_two_n2_u64 = 32 * n * n;
 
@@ -205,11 +207,8 @@ fn calculate_euler_gamma(prec: u32, parallel: bool) -> BigFloat {
     let d_common_f = BigFloat::with_val(binary_prec, &d_common);
     gamma_bessel /= d_common_f;
 
-    let log_n = if parallel {
-        generic_log::compute_ln_parallel(n as f64, prec)
-    } else {
-        generic_log::compute_ln(n as f64, prec)
-    };
+    // Use native, highly-optimized ln implementation of the backend
+    let log_n = BigFloat::with_val(binary_prec, n as u32).ln();
 
     gamma_bessel -= &log_n;
     gamma_bessel

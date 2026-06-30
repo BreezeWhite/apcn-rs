@@ -243,6 +243,13 @@ impl BigFloat {
         }
     }
 
+    pub fn to_int(&self) -> BigInt {
+        BigInt {
+            val: self.val.clone().to_int().value(),
+        }
+    }
+
+
     pub fn sqrt(self) -> Self {
         use dashu::base::SquareRoot;
         BigFloat {

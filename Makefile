@@ -13,3 +13,12 @@ build-wasm:
 
 publish-wasm:
 	@wasm-pack publish --access=public
+
+check:
+	@cargo check
+	@cargo check --no-default-features --features cli,dashu
+	@cargo check --no-default-features --features cli,wasm,dashu
+
+test:
+	@cargo test
+	@cargo test --no-default-features --features cli,dashu

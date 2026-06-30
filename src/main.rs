@@ -1,33 +1,9 @@
-use std::fs::File;
-use std::io::{Result, Write};
 use std::time::Instant;
 
 use apcn::backend::BigFloat;
 use apcn::cli::{Actions, Cli};
-use apcn::log::generic_log::{compute_ln, compute_ln_parallel};
 use apcn::{e, gamma, log, phi, pi, sqrt};
 use clap::Parser;
-
-fn gen_test_data() -> Result<()> {
-    let prec = 2_000_000;
-    let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
-
-    let x = 5;
-    let start = Instant::now();
-    let ss = BigFloat::with_val(binary_prec, x).ln().to_fixed_string();
-    let elapsed = start.elapsed();
-    println!("Elapsed: {elapsed:#?}");
-
-    let out_path = format!("./tests/data/ln{x}_million.txt");
-    let mut f = File::create(out_path)?;
-    f.write_all(&ss.as_bytes()[..prec + 2])?;
-    Ok(())
-}
-
-fn _main() -> Result<()> {
-    let _ = gen_test_data()?;
-    Ok(())
-}
 
 #[cfg(feature = "rug")]
 const BACKEND: &str = "rug";
@@ -35,58 +11,72 @@ const BACKEND: &str = "rug";
 #[cfg(feature = "dashu")]
 const BACKEND: &str = "dashu";
 
-fn get_func(action: Actions, parallel: bool) -> fn(u32) -> BigFloat {
+fn get_func(action: Actions, parallel: bool) -> Box<dyn Fn(u32) -> BigFloat> {
     match action {
         Actions::Pi => {
             if parallel {
-                pi::compute_parallel
+                Box::new(pi::compute_parallel)
             } else {
-                pi::compute
+                Box::new(pi::compute)
             }
         }
         Actions::E => {
             if parallel {
-                e::compute_parallel
+                Box::new(e::compute_parallel)
             } else {
-                e::compute
+                Box::new(e::compute)
             }
         }
         Actions::Ln2 => {
             if parallel {
-                log::ln2_parallel
+                Box::new(log::ln2_parallel)
             } else {
-                log::ln2
+                Box::new(log::ln2)
             }
         }
         Actions::Ln3 => {
             if parallel {
-                log::ln3_parallel
+                Box::new(log::ln3_parallel)
             } else {
-                log::ln3
+                Box::new(log::ln3)
             }
         }
         Actions::Ln5 => {
             if parallel {
-                log::ln5_parallel
+                Box::new(log::ln5_parallel)
             } else {
-                log::ln5
+                Box::new(log::ln5)
             }
         }
-        Actions::Sqrt2 => sqrt::sqrt2,
-        Actions::Sqrt3 => sqrt::sqrt3,
-        Actions::Sqrt5 => sqrt::sqrt5,
+        Actions::Sqrt2 => Box::new(sqrt::sqrt2),
+        Actions::Sqrt3 => Box::new(sqrt::sqrt3),
+        Actions::Sqrt5 => Box::new(sqrt::sqrt5),
         Actions::Phi => {
             if parallel {
-                phi::compute_parallel
+                Box::new(phi::compute_parallel)
             } else {
-                phi::compute_phi
+                Box::new(phi::compute_phi)
             }
         }
         Actions::Gamma => {
             if parallel {
-                gamma::compute_parallel
+                Box::new(gamma::compute_parallel)
             } else {
-                gamma::compute
+                Box::new(gamma::compute)
+            }
+        }
+        Actions::Exp { x } => {
+            if parallel {
+                Box::new(move |prec| e::exp_parallel(x, prec))
+            } else {
+                Box::new(move |prec| e::exp(x, prec))
+            }
+        }
+        Actions::Ln { x } => {
+            if parallel {
+                Box::new(move |prec| log::generic_log::compute_ln_parallel(x, prec))
+            } else {
+                Box::new(move |prec| log::generic_log::compute_ln(x, prec))
             }
         }
     }
@@ -114,7 +104,8 @@ fn main() {
 
     if !arg.no_print {
         let out_str = out.to_fixed_string();
-        println!("{}", &out_str[..(arg.digits as usize + 2)]);
+        let n = out_str.len();
+        println!("{}", &out_str[..(n.min(arg.digits as usize + 2))]);
         // println!("{}", out_str);
     }
 
@@ -124,20 +115,13 @@ fn main() {
 }
 
 fn main_test() {
-    let prec = 100;
+    let prec = 100000;
     let binary_prec = ((prec as f64 * std::f64::consts::LOG2_10).ceil() as u32) + 32;
 
-    let x = 2;
-
     let start = Instant::now();
-    // let val = log::compute(prec);
-    // let val = BigFloat::with_val(binary_prec, x).ln();
-    // let val = compute_ln_parallel(x as f64, prec);
-    // let val = pi::compute(prec);
-    // let val = phi::compute_parallel(prec);
     let val = gamma::compute_parallel(prec);
     let dura = start.elapsed();
-    println!("{}", val.to_fixed_string());
+    // println!("{}", val.to_fixed_string());
     println!("Compute parallel duration: {dura:#?}");
 
     let start = Instant::now();
@@ -146,18 +130,15 @@ fn main_test() {
     println!("Format duration: {dura:#?}");
 
     // -----
-    let start = Instant::now();
-    // let val = compute_ln(x as f64, prec);
-    // let val = compute_phi(binary_prec);
-    // let val = 2f64.ln();
-    let val = rug::Float::with_val(binary_prec, rug::float::Constant::Euler);
-    let dura = start.elapsed();
-    println!("{val}");
-    // println!("{}", val.to_fixed_string());
-    println!("Compute generic duration: {dura:#?}");
+    // let start = Instant::now();
+    // let val = rug::Float::with_val(binary_prec, rug::float::Constant::Euler);
+    // let dura = start.elapsed();
+    // // println!("{val}");
+    // // println!("{}", val.to_fixed_string());
+    // println!("Compute generic duration: {dura:#?}");
 
-    let start = Instant::now();
-    let _ = val.to_string();
-    let dura = start.elapsed();
-    println!("Format duration: {dura:#?}");
+    // let start = Instant::now();
+    // let _ = val.to_string();
+    // let dura = start.elapsed();
+    // println!("Format duration: {dura:#?}");
 }

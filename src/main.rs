@@ -130,15 +130,15 @@ fn main_test() {
     println!("Format duration: {dura:#?}");
 
     // -----
-    let start = Instant::now();
-    let val = rug::Float::with_val(binary_prec, rug::float::Constant::Euler);
-    let dura = start.elapsed();
-    // println!("{val}");
-    // println!("{}", val.to_fixed_string());
-    println!("Compute generic duration: {dura:#?}");
+    // let start = Instant::now();
+    // let val = rug::Float::with_val(binary_prec, rug::float::Constant::Euler);
+    // let dura = start.elapsed();
+    // // println!("{val}");
+    // // println!("{}", val.to_fixed_string());
+    // println!("Compute generic duration: {dura:#?}");
 
-    let start = Instant::now();
-    let _ = val.to_string();
-    let dura = start.elapsed();
-    println!("Format duration: {dura:#?}");
+    // let start = Instant::now();
+    // let _ = val.to_string();
+    // let dura = start.elapsed();
+    // println!("Format duration: {dura:#?}");
 }

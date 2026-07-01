@@ -454,12 +454,12 @@
         /* Navigation Grid */
         .nav-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 1.5rem;
             width: 100%;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .nav-grid {
                 grid-template-columns: 1fr;
             }
@@ -481,17 +481,25 @@
             overflow: hidden;
         }
 
-        .nav-card:hover {
+        .nav-card:nth-child(1):hover {
             border-color: var(--accent-cyan);
             transform: translateY(-4px);
             background: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.08) 0%, rgba(139, 92, 246, 0.04) 50%, rgba(17, 24, 39, 0.7) 100%);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(6, 182, 212, 0.15);
         }
 
-        .nav-card:last-child:hover {
+        .nav-card:nth-child(2):hover {
             border-color: var(--accent-purple);
+            transform: translateY(-4px);
             background: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.04) 50%, rgba(17, 24, 39, 0.7) 100%);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.15);
+        }
+
+        .nav-card:nth-child(3):hover {
+            border-color: var(--accent-amber);
+            transform: translateY(-4px);
+            background: radial-gradient(circle at 10% 20%, rgba(245, 158, 11, 0.08) 0%, rgba(6, 182, 212, 0.04) 50%, rgba(17, 24, 39, 0.7) 100%);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.15);
         }
 
         .nav-card-icon {
@@ -519,6 +527,12 @@
             background: rgba(139, 92, 246, 0.15);
             color: var(--accent-purple);
             box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+        }
+
+        .nav-card-icon.amber {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
         }
 
         .nav-card h3 {
@@ -760,6 +774,13 @@
                             <h3>WASM Playground <i data-lucide="arrow-right"></i></h3>
                             <p>Calculate high-precision mathematical constants directly inside your browser using
                                 WebAssembly.</p>
+                        </a>
+                        <a href="theory.html" class="nav-card">
+                            <div class="nav-card-icon amber">
+                                <i data-lucide="book-open"></i>
+                            </div>
+                            <h3>Mathematical Theory <i data-lucide="arrow-right"></i></h3>
+                            <p>Learn about the advanced algorithms, derivations, and parallel binary splitting calculations.</p>
                         </a>
                     </div>
 

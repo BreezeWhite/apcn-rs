@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>apcn - Mathematical Algorithms & Theory</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Educational guide detailing the advanced mathematical algorithms and formulas behind apcn. Learn about Chudnovsky, Brent-McMillan, Newton-Raphson, and Binary Splitting.">
+    <meta name="keywords" content="apcn, math algorithms, arbitrary precision math, chudnovsky formula, brent-mcmillan, binary splitting, newton-raphson, euler-mascheroni constant, pi algorithm">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="apcn - Mathematical Algorithms & Theory">
+    <meta property="og:description" content="Explore the derivations, mathematics, and complexity analysis of high-precision mathematical constant calculations.">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="apcn - Mathematical Algorithms & Theory">
+    <meta name="twitter:description" content="Educational guide to arbitrary-precision mathematical algorithms.">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- KaTeX for Textbook Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" 
+            onload="renderMathInElement(document.body, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false} ] });"></script>
+
+    <style>
+        :root {
+            --bg-main: #080c14;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(26, 36, 56, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --border-accent: rgba(6, 182, 212, 0.3);
+
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+
+            --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+            --gradient-dark: linear-gradient(180deg, #080c14 0%, #0e1726 100%);
+
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+
+            --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            background-image: var(--gradient-dark);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding: 2rem;
+        }
+
+        /* Ambient Glow Blobs */
+        .ambient-glow {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, rgba(6, 182, 212, 0.03) 50%, transparent 100%);
+            top: -200px;
+            right: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ambient-glow-2 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, rgba(139, 92, 246, 0.02) 50%, transparent 100%);
+            bottom: -100px;
+            left: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-title-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .header-logo i {
+            font-size: 22px;
+            color: #fff;
+        }
+
+        .header-titles h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-titles p {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+        }
+
+        /* Layout Grid */
+        .theory-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .theory-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sticky Sidebar Navigation */
+        .sidebar {
+            position: sticky;
+            top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .sidebar-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.85rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateX(2px);
+        }
+
+        .nav-link.active {
+            background: rgba(6, 182, 212, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        /* Main Content cards */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .theory-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            text-align: left;
+            position: relative;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
+        }
+
+        .theory-card.intro::before { background: var(--gradient-primary); }
+        .theory-card.pi::before { background: var(--accent-cyan); }
+        .theory-card.e::before { background: var(--accent-purple); }
+        .theory-card.gamma::before { background: var(--accent-amber); }
+        .theory-card.log::before { background: var(--accent-emerald); }
+        .theory-card.phi::before { background: var(--accent-rose); }
+        .theory-card.sqrt::before { background: var(--text-secondary); }
+        .theory-card.split::before { background: var(--gradient-primary); }
+
+        .theory-card h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .theory-card.pi h2 i { color: var(--accent-cyan); }
+        .theory-card.e h2 i { color: var(--accent-purple); }
+        .theory-card.gamma h2 i { color: var(--accent-amber); }
+        .theory-card.log h2 i { color: var(--accent-emerald); }
+        .theory-card.phi h2 i { color: var(--accent-rose); }
+
+        .theory-card p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        .math-block {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 0.5rem 0;
+            color: #e2e8f0;
+            overflow-x: auto;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .bullet-list {
+            margin-left: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+
+        .bullet-list strong {
+            color: var(--text-primary);
+        }
+
+        .complexity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            width: fit-content;
+        }
+
+        .complexity-badge span {
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+        }
+
+        /* References section in cards */
+        .card-references {
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-references strong {
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        .card-references a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: color 0.2s ease;
+        }
+
+        .card-references a:hover {
+            color: var(--text-primary);
+            text-decoration: underline;
+        }
+
+        .theory-card.pi .card-references a { color: var(--accent-cyan); }
+        .theory-card.e .card-references a { color: var(--accent-purple); }
+        .theory-card.gamma .card-references a { color: var(--accent-amber); }
+        .theory-card.log .card-references a { color: var(--accent-emerald); }
+        .theory-card.phi .card-references a { color: var(--accent-rose); }
+        .theory-card.sqrt .card-references a { color: var(--text-secondary); }
+        .theory-card.split .card-references a { color: var(--accent-cyan); }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border);
+            padding-top: 2rem;
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        footer a:hover {
+            color: var(--accent-cyan);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <div class="header-title-section">
+                <!-- Navigation Home Button -->
+                <a href="index.html" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; margin-right: 0.5rem; transition: all 0.2s ease; cursor: pointer;" title="Back to Home">
+                    <i data-lucide="home" style="width: 20px; height: 20px;"></i>
+                </a>
+                <div class="header-logo">
+                    <i data-lucide="book-open"></i>
+                </div>
+                <div class="header-titles">
+                    <h1>Mathematical Algorithms & Theory</h1>
+                    <p>Educational guide to arbitrary-precision constant algorithms & complex complexity models</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="theory-grid">
+
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-card">
+                    <div class="sidebar-title">
+                        <i data-lucide="list"></i> Table of Contents
+                    </div>
+                    <ul class="nav-list">
+                        <li><a href="#intro" class="nav-link active" onclick="setActive(this)"><i data-lucide="info"></i> Introduction</a></li>
+                        <li><a href="#pi" class="nav-link" onclick="setActive(this)"><i data-lucide="circle"></i> Pi (&pi;)</a></li>
+                        <li><a href="#e" class="nav-link" onclick="setActive(this)"><i data-lucide="chevron-right"></i> Euler's Number (e)</a></li>
+                        <li><a href="#gamma" class="nav-link" onclick="setActive(this)"><i data-lucide="trending-up"></i> Gamma (&gamma;)</a></li>
+                        <li><a href="#log" class="nav-link" onclick="setActive(this)"><i data-lucide="bar-chart-2"></i> Logarithms (ln)</a></li>
+                        <li><a href="#phi" class="nav-link" onclick="setActive(this)"><i data-lucide="percent"></i> Golden Ratio (&phi;)</a></li>
+                        <li><a href="#sqrt" class="nav-link" onclick="setActive(this)"><i data-lucide="terminal"></i> Square Roots (&radic;)</a></li>
+                        <li><a href="#split" class="nav-link" onclick="setActive(this)"><i data-lucide="git-branch"></i> Binary Splitting</a></li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content-area">
+
+                <!-- Introduction Card -->
+                <section class="theory-card intro" id="intro">
+                    <h2><i data-lucide="info"></i> Arbitrary Precision Computation</h2>
+                    <p>
+                        Standard computer registers represent floating-point numbers using the IEEE 754 standard, allocating a fixed <strong>64 bits</strong> (double precision) of memory. This limits representations to roughly 15-17 significant decimal digits. If you calculate $ \pi $ or any mathematical constant using standard variables, error accumulation quickly destroys accuracy at higher targets.
+                    </p>
+                    <p>
+                        To calculate constants to millions of decimal places, we use <strong>Arbitrary Precision Arithmetic</strong>. This technique stores numbers as dynamic arrays of digital blocks (often 32-bit or 64-bit integers representing large bases like $ 2^{32} $ or $ 2^{64} $). Using advanced backend engines (like <code>rug</code>/GMP or <code>dashu</code>), we perform basic math operations (addition, multiplication, division) on these large arrays. This page explains the algorithms used to construct high-precision constants from these array-based backends.
+                    </p>
+                </section>
+
+                <!-- Pi Card -->
+                <section class="theory-card pi" id="pi">
+                    <h2><i data-lucide="circle"></i> Pi (&pi;) — Chudnovsky Algorithm</h2>
+                    <div class="complexity-badge">Computational Complexity: <span>O(M(N) log N)</span></div>
+                    <p>
+                        The calculation of Pi in <code>apcn</code> uses the famous <strong>Chudnovsky Algorithm</strong>, published by the Chudnovsky brothers in 1988. It is a rapid Ramanujan-like hypergeometric series that yields approximately <strong>14 decimal digits per term</strong>, making it the industry standard for world-record computations.
+                    </p>
+                    <div class="math-block">
+                        $$\frac{1}{\pi} = 12 \sum_{k=0}^{\infty} \frac{(-1)^k (6k)! (13591409 + 545140134k)}{(3k)! (k!)^3 (640320)^{3k + 3/2}}$$
+                    </div>
+                    <p>
+                        To implement this formula at extreme precisions efficiently, the hypergeometric series is rewritten into a fraction of integer terms and computed using <strong>Binary Splitting</strong>. This reduces the problem of dividing large floating-point numbers at every step to a single final high-precision division, parallelizing the integer multiplications across CPU cores.
+                    </p>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://en.wikipedia.org/wiki/Chudnovsky_algorithm" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wikipedia Chudnovsky Formula</a>
+                        <span>&bull;</span>
+                        <a href="https://mathworld.wolfram.com/PiFormulas.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wolfram MathWorld Pi Formulas</a>
+                    </div>
+                </section>
+
+                <!-- E Card -->
+                <section class="theory-card e" id="e">
+                    <h2><i data-lucide="chevron-right"></i> Euler's Number (e) — Taylor Series</h2>
+                    <div class="complexity-badge">Computational Complexity: <span>O(M(N) log N)</span></div>
+                    <p>
+                        Euler's number $ e $ is calculated using its natural infinite Taylor series definition:
+                    </p>
+                    <div class="math-block">
+                        $$e = \sum_{n=0}^{\infty} \frac{1}{n!} = 1 + 1 + \frac{1}{2} + \frac{1}{6} + \frac{1}{24} + \frac{1}{120} + \cdots$$
+                    </div>
+                    <p>
+                        This series converges extremely fast because factorials grow super-exponentially. For a target of $ N $ digits of precision, the number of terms needed is estimated by solving for $ k $ in:
+                    </p>
+                    <div class="math-block">
+                        $$k! \ge 10^N$$
+                    </div>
+                    <p>
+                        Using binary splitting, the sum of fractions is grouped recursively into a single numerator and denominator before performing one final division:
+                    </p>
+                    <ul class="bullet-list">
+                        <li><strong>Numerator P:</strong> Computed recursively via divide-and-conquer.</li>
+                        <li><strong>Denominator Q:</strong> Represents the factorial products.</li>
+                        <li><strong>Final Division:</strong> $ P / Q $ produces the high-precision floating-point constant.</li>
+                    </ul>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://en.wikipedia.org/wiki/Binary_splitting" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wikipedia Binary Splitting</a>
+                        <span>&bull;</span>
+                        <a href="https://mathworld.wolfram.com/e.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wolfram MathWorld e Constant</a>
+                    </div>
+                </section>
+
+                <!-- Gamma Card -->
+                <section class="theory-card gamma" id="gamma">
+                    <h2><i data-lucide="trending-up"></i> Euler-Mascheroni Constant (&gamma;) — Brent-McMillan B3</h2>
+                    <div class="complexity-badge">Computational Complexity: <span>O(M(N) log<sup>2</sup> N)</span></div>
+                    <p>
+                        The Euler-Mascheroni constant $ \gamma $ is the limiting difference between the harmonic series and the natural logarithm. It is one of the most challenging constants to calculate to high precision.
+                    </p>
+                    <div class="math-block">
+                        $$\gamma = \lim_{n \to \infty} \left( \sum_{i=1}^{n} \frac{1}{i} - \ln(n) \right)$$
+                    </div>
+                    <p>
+                        <code>apcn</code> uses the highly optimized <strong>Brent-McMillan B3 Algorithm</strong>, which utilizes modified Bessel functions:
+                    </p>
+                    <div class="math-block">
+                        $$\gamma = \frac{S_0(2N) - K_0(2N)}{I_0(2N)} - \ln(N)$$
+                    </div>
+                    <p>
+                        Where $ I_0 $ and $ K_0 $ are modified Bessel functions, and $ S_0 $ is a related series. The algorithm works by:
+                    </p>
+                    <ul class="bullet-list">
+                        <li><strong>Bessel Series:</strong> Computing the Bessel functions $ I_0 $ and $ S_0 $ using binary splitting for a chosen parameter $ N $.</li>
+                        <li><strong>Asymptotic Expansion:</strong> Evaluating the asymptotic expansion of $ I_0(2N) K_0(2N) $ to avoid calculating the extremely slow $ K_0 $ series directly.</li>
+                        <li><strong>Logarithm Correction:</strong> Subtracting $ \ln(N) $ using a high-precision logarithm calculator.</li>
+                    </ul>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://mathworld.wolfram.com/Euler-MascheroniConstant.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wolfram MathWorld Euler-Mascheroni</a>
+                        <span>&bull;</span>
+                        <a href="http://numbers.computation.free.fr/Constants/Gamma/gamma.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> B3 Algorithm Analytical Steps</a>
+                    </div>
+                </section>
+
+                <!-- Logarithms Card -->
+                <section class="theory-card log" id="log">
+                    <h2><i data-lucide="bar-chart-2"></i> Natural Logarithms (ln) — AGM & Taylor</h2>
+                    <div class="complexity-badge">Complexity: <span>O(M(N) log N)</span></div>
+                    <p>
+                        APCN computes logarithms using two complementary algorithms based on the magnitude of the input parameter:
+                    </p>
+                    <ul class="bullet-list">
+                        <li><strong>Logarithmic Taylor Series:</strong> For values near 1, we use the classic Mercator series combined with binary splitting for fast convergence:
+                            <div class="math-block">
+                                $$\ln(1+x) = \sum_{n=1}^{\infty} \frac{(-1)^{n-1} x^n}{n} \quad \text{for } |x| < 1$$
+                            </div>
+                        </li>
+                        <li><strong>Arithmetic-Geometric Mean (AGM):</strong> For larger values, Taylor series converge too slowly. Instead, we use the AGM method, which displays quadratic convergence:
+                            <div class="math-block">
+                                $$\ln(x) \approx \frac{\pi}{2 \cdot \text{AGM}\left(1, \frac{4}{2^m}\right)} - m \ln(2)$$
+                            </div>
+                            where $ m $ is a large scaling factor. This allows calculating the natural logarithm of any number with high efficiency by reducing it to iterative arithmetic averages.</li>
+                    </ul>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://en.wikipedia.org/wiki/Arithmetic%E2%80%93geometric_mean#Relation_to_the_natural_logarithm" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wikipedia AGM & Logarithm</a>
+                        <span>&bull;</span>
+                        <a href="https://mathworld.wolfram.com/Arithmetic-GeometricMean.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wolfram MathWorld AGM</a>
+                    </div>
+                </section>
+
+                <!-- Golden Ratio Card -->
+                <section class="theory-card phi" id="phi">
+                    <h2><i data-lucide="percent"></i> Golden Ratio (&phi;) — Direct Calculation</h2>
+                    <div class="complexity-badge">Complexity: <span>O(M(N))</span></div>
+                    <p>
+                        The Golden Ratio $ \phi $ has a simple algebraic definition:
+                    </p>
+                    <div class="math-block">
+                        $$\phi = \frac{\sqrt{5} + 1}{2}$$
+                    </div>
+                    <p>
+                        Instead of computing an infinite series directly for $ \phi $, we calculate the square root of 5 ($ \sqrt{5} $) to the target precision using the Newton-Raphson iteration, add 1 (a cheap integer operation), and shift the division bits by 1 (equivalent to dividing by 2). This makes the performance of $ \phi $ closely match the computation speed of square roots.
+                    </p>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://mathworld.wolfram.com/GoldenRatio.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wolfram MathWorld Golden Ratio</a>
+                        <span>&bull;</span>
+                        <a href="https://en.wikipedia.org/wiki/Golden_ratio" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wikipedia Golden Ratio</a>
+                    </div>
+                </section>
+
+                <!-- Square Root Card -->
+                <section class="theory-card sqrt" id="sqrt">
+                    <h2><i data-lucide="terminal"></i> Square Roots (&radic;) — Newton-Raphson</h2>
+                    <div class="complexity-badge">Complexity: <span>O(M(N))</span></div>
+                    <p>
+                        Square roots are computed using the <strong>Newton-Raphson Method</strong>, which is equivalent to solving the function $ f(y) = y^2 - x = 0 $. The iterative step is defined as:
+                    </p>
+                    <div class="math-block">
+                        $$y_{k+1} = \frac{1}{2} \left( y_k + \frac{x}{y_k} \right)$$
+                    </div>
+                    <p>
+                        This method exhibits <strong>quadratic convergence</strong>, meaning the number of correct decimal digits doubles with every single iteration. If you start with a 15-digit double estimate, the precision grows as $ 15 \to 30 \to 60 \to 120 \to 240 \to \cdots $ meaning only 16 iterations are required to calculate 1,000,000 digits!
+                    </p>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://en.wikipedia.org/wiki/Newton%27s_method" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wikipedia Newton-Raphson Method</a>
+                        <span>&bull;</span>
+                        <a href="https://mathworld.wolfram.com/NewtonsMethod.html" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wolfram MathWorld Newton's Method</a>
+                    </div>
+                </section>
+
+                <!-- Binary Splitting Card -->
+                <section class="theory-card split" id="split">
+                    <h2><i data-lucide="git-branch"></i> Binary Splitting & Parallelization</h2>
+                    <p>
+                        <strong>Binary Splitting</strong> is a divide-and-conquer optimization technique for evaluating infinite series with rational terms.
+                    </p>
+                    <p>
+                        Consider a series where each term can be expressed as a fraction. If computed sequentially, each step requires a floating-point division and multiplication of large numbers, which is extremely expensive. 
+                        Binary splitting recursively splits the terms of the series into two halves:
+                    </p>
+                    <div class="math-block">
+                        $$[L, R] \to [L, \text{Mid}] \quad \text{and} \quad [\text{Mid}, R]$$
+                    </div>
+                    <p>
+                        Instead of dividing floating-point numbers at each step, we merge the rational fractions together using integer additions and multiplications. We only perform a single high-precision division at the very end of the calculation.
+                    </p>
+                    <p>
+                        <strong>Why Parallelization Works:</strong> Since the recursion tree divides the work into independent sub-trees, we can run the calculations of the left and right sub-trees in parallel across multiple CPU threads using <strong>Rayon</strong>. This speeds up computation on multi-core processors.
+                    </p>
+                    <div class="card-references">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                        <strong>Detailed Math Process:</strong>
+                        <a href="https://en.wikipedia.org/wiki/Binary_splitting" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Wikipedia Binary Splitting</a>
+                        <span>&bull;</span>
+                        <a href="https://github.com/rayon-rs/rayon" target="_blank"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Rayon Parallel Framework</a>
+                    </div>
+                </section>
+
+            </main>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>apcn-rs is licensed under the <a href="https://github.com/BreezeWhite/apcn-rs/blob/main/LICENSE" target="_blank">MIT License</a>. View the source on <a href="https://github.com/BreezeWhite/apcn-rs" target="_blank">GitHub</a>.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Highlight active sidebar links on click and handle scroll offsets
+        function setActive(element) {
+            const links = document.querySelectorAll(".nav-link");
+            links.forEach(link => link.classList.remove("active"));
+            element.classList.add("active");
+        }
+
+        // Active link tracking during scrolling
+        window.addEventListener("scroll", () => {
+            const sections = document.querySelectorAll("section");
+            const navLinks = document.querySelectorAll(".nav-link");
+            
+            let current = "";
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 120) {
+                    current = section.getAttribute("id");
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === `#${current}`) {
+                    link.classList.add("active");
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
